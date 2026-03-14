@@ -2,11 +2,14 @@ import { useSearchParams } from 'react-router-dom';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { assets, glossaryTerms, domains, applications } from '../data/mock';
+import { useAppStore } from '../store/useAppStore';
 import { Badge } from '../components/Badge';
+import { getNetScore, getVoteCount } from '../utils/dataProductVoting';
 import styles from './Page.module.css';
 
 export function SearchPage() {
   const [params, setSearchParams] = useSearchParams();
+  const dataProductVotes = useAppStore((s) => s.dataProductVotes);
   const q = (params.get('q') || '').toLowerCase();
   const zone = params.get('zone') ?? '';
   const applicationId = params.get('application') ?? '';
@@ -144,7 +147,12 @@ export function SearchPage() {
                   <li key={p.id}>
                     <Link to={`/data-product/${p.id}`} className={styles.resultLink}>
                       <span className={styles.resultName}>{p.name}</span>
-                      <span className={styles.resultMeta}>{p.domainName}</span>
+                      <span className={styles.resultMeta}>
+                        {p.domainName}
+                        {getVoteCount(dataProductVotes, p.id) > 0 && (
+                          <> · Rating: {getNetScore(dataProductVotes, p.id) >= 0 ? `+${getNetScore(dataProductVotes, p.id)}` : getNetScore(dataProductVotes, p.id)} ({getVoteCount(dataProductVotes, p.id)} vote{getVoteCount(dataProductVotes, p.id) !== 1 ? 's' : ''})</>
+                        )}
+                      </span>
                     </Link>
                   </li>
                 ))}

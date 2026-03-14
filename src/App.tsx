@@ -27,6 +27,7 @@ import { LineagePage } from './pages/LineagePage';
 import { InsightsPage } from './pages/InsightsPage';
 import { CompliancePage } from './pages/CompliancePage';
 import { ConnectorsPage } from './pages/ConnectorsPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { TagsPage } from './pages/TagsPage';
 
 function App() {
@@ -62,7 +63,9 @@ function App() {
         <Route path="/lineage" element={<LineagePage />} />
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/compliance" element={<CompliancePage />} />
-        <Route path="/connectors" element={<ConnectorsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/connectors" element={<ConnectorsPage />} />
+        <Route path="/connectors" element={<Navigate to="/settings/connectors" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

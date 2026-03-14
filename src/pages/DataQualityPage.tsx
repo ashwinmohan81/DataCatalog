@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom';
 import { dqRules, dqRuns, assets } from '../data/mock';
+import { useAppStore } from '../store/useAppStore';
 import { Card, CardHeader } from '../components/Card';
 import { Badge } from '../components/Badge';
 import styles from './Page.module.css';
 
 export function DataQualityPage() {
+  const runtimeDqRules = useAppStore((s) => s.runtimeDqRules);
+  const allDqRules = [...dqRules, ...runtimeDqRules];
+  const getDqRuleById = (id: string) => dqRules.find((r) => r.id === id) ?? runtimeDqRules.find((r) => r.id === id);
   const failedRuns = dqRuns.filter((r) => !r.passed);
 
   return (
@@ -30,7 +34,7 @@ export function DataQualityPage() {
               <tbody>
                 {failedRuns.map((r) => (
                   <tr key={r.id}>
-                    <td>{dqRules.find((x) => x.id === r.ruleId)?.name ?? r.ruleId}</td>
+                    <td>{getDqRuleById(r.ruleId)?.name ?? r.ruleId}</td>
                     <td>
                       {assets.find((a) => a.id === r.assetId) ? (
                         <Link to={`/asset/${r.assetId}`}>{assets.find((a) => a.id === r.assetId)!.displayName}</Link>
@@ -60,7 +64,7 @@ export function DataQualityPage() {
               </tr>
             </thead>
             <tbody>
-              {dqRules.map((r) => (
+              {allDqRules.map((r) => (
                 <tr key={r.id}>
                   <td>{r.name}</td>
                   <td>{r.type}</td>

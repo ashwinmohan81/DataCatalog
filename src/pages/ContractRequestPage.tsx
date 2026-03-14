@@ -18,8 +18,11 @@ export function ContractRequestPage() {
   const [dqRuleIds, setDqRuleIds] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
+  const runtimeDqRules = useAppStore((s) => s.runtimeDqRules);
   const asset = assetId ? assets.find((a) => a.id === assetId) : null;
-  const assetDqRules = asset ? dqRules.filter((r) => r.assetId === asset.id) : [];
+  const assetDqRules = asset
+    ? [...dqRules.filter((r) => r.assetId === asset.id), ...runtimeDqRules.filter((r) => r.assetId === asset.id)]
+    : [];
 
   const toggleColumn = (id: string) => {
     setSelectedColumnIds((s) => {

@@ -36,6 +36,25 @@ export type TaskStatus = 'open' | 'in_progress' | 'done';
 
 export type DQRuleType = 'null_check' | 'uniqueness' | 'range' | 'regex' | 'custom_sql';
 
+/** Rule source: prebuilt (e.g. Great Expectations) or custom SQL. */
+export type DQRuleEngine = 'great_expectations' | 'custom_sql';
+
+/** Prebuilt rule template that can be enabled on an asset/column (e.g. GE expectations). */
+export interface DQRuleTemplate {
+  id: string;
+  name: string;
+  /** Great Expectations expectation name or our type. */
+  expectationType: string;
+  description: string;
+  engine: DQRuleEngine;
+  /** Maps to DQRuleType for display/filter. */
+  ruleType: DQRuleType;
+  /** If true, rule is column-level and requires columnId. */
+  columnRequired: boolean;
+  /** Config keys and hints for building the rule (e.g. min, max, regex). */
+  configSchema: Array<{ key: string; label: string; required?: boolean; placeholder?: string }>;
+}
+
 export type Maturity = 'mapped' | 'partial' | 'unmapped';
 
 export interface Domain {
@@ -184,6 +203,9 @@ export interface DQRule {
   sql?: string;
   lastRunAt?: string;
   lastRunPassed?: boolean;
+  /** When set, rule was enabled from a prebuilt template (e.g. Great Expectations). */
+  templateId?: string;
+  engine?: DQRuleEngine;
 }
 
 export interface DQRun {

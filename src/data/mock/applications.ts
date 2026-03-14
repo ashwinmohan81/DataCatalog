@@ -25,6 +25,14 @@ export const applications: Application[] = [
     type: 'producer',
   },
   {
+    id: 'app-bcbs-consumer',
+    name: 'BCBS Consumer App',
+    description: 'Consumer application for BCBS 239 reporting. Used as default for voting and comments.',
+    owner: 'Jane Risk',
+    type: 'consumer',
+    consumedDataProductIds: ['dp-exposure', 'dp-customer-attr'],
+  },
+  {
     id: 'app-reporting-consumer',
     name: 'BCBS Reporting Consumer',
     description: 'Consumer application that consumes exposure and risk data for regulatory reporting.',

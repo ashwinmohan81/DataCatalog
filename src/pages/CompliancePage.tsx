@@ -7,7 +7,7 @@ const BCBS_SECTIONS = [
   { id: 'arch', title: 'Data architecture & IT', desc: 'Architecture supports aggregation and reporting', capability: 'Lineage, logical/physical mapping, domains', path: '/catalog' },
   { id: 'accuracy', title: 'Accuracy & integrity', desc: 'Largely automated, minimal manual error', capability: 'DQ rules, profiling, versioning', path: '/quality' },
   { id: 'completeness', title: 'Completeness', desc: 'All material risk data', capability: 'Domains, data products, coverage', path: '/marketplace' },
-  { id: 'timeliness', title: 'Timeliness', desc: 'Data available when needed', capability: 'Last scan, refresh metadata', path: '/connectors' },
+  { id: 'timeliness', title: 'Timeliness', desc: 'Data available when needed', capability: 'Last scan, refresh metadata', path: '/settings/connectors' },
   { id: 'reporting', title: 'Risk reporting', desc: 'Accurate, comprehensive, clear', capability: 'Glossary, DQ, export for compliance', path: '/insights' },
 ];
 

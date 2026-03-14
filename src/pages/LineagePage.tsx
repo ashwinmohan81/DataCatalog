@@ -19,11 +19,14 @@ function getDataProductName(dataProductId: string): string {
   return dataProductId;
 }
 
+const LINEAGE_COLUMN_TABS_MAX = 8;
+
 export function LineagePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const assetId = searchParams.get('asset') ?? '';
   const selectedColumnId = searchParams.get('column') ?? '';
   const [searchQuery, setSearchQuery] = useState('');
+  const [lineageViewMode, setLineageViewMode] = useState<'flow' | 'columnBased'>('flow');
 
   const asset = assetId ? getAssetById(assetId) : null;
   const graphsForAsset = useMemo(
@@ -200,27 +203,59 @@ export function LineagePage() {
 
           <Card>
             <CardHeader title="Column-level lineage" />
-            <p className={styles.muted}>Select a column to view its lineage flow.</p>
-            <div className={styles.lineageColumnTabs}>
-              {graphsForAsset.map((g) => {
-                const col = asset.columns.find((c) => c.id === g.columnId);
-                const columnName = col?.name ?? g.columnId;
-                const isSelected = (selectedColumnId && g.columnId === selectedColumnId) || (!selectedColumnId && graphsForAsset[0]?.columnId === g.columnId);
-                return (
-                  <button
-                    key={g.columnId}
-                    type="button"
-                    onClick={() => setColumn(g.columnId)}
-                    className={`${styles.lineageColumnTab} ${isSelected ? styles.lineageColumnTabActive : ''}`}
-                  >
-                    <code>{columnName}</code>
-                  </button>
-                );
-              })}
+            <p className={styles.muted}>Select a column to view its lineage flow. Expand nodes to see attributes.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
+              <span className={styles.muted}>View:</span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                <input type="radio" name="lineageView" checked={lineageViewMode === 'flow'} onChange={() => setLineageViewMode('flow')} />
+                Flow
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                <input type="radio" name="lineageView" checked={lineageViewMode === 'columnBased'} onChange={() => setLineageViewMode('columnBased')} />
+                Column-based
+              </label>
             </div>
+            {graphsForAsset.length > LINEAGE_COLUMN_TABS_MAX ? (
+              <div style={{ marginBottom: 'var(--space-3)' }}>
+                <label className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Select column</label>
+                <select
+                  value={selectedColumnId || graphsForAsset[0]?.columnId || ''}
+                  onChange={(e) => setColumn(e.target.value)}
+                  style={{ padding: 'var(--space-2)', minWidth: 220 }}
+                >
+                  {graphsForAsset.map((g) => {
+                    const col = asset.columns.find((c) => c.id === g.columnId);
+                    const columnName = col?.name ?? g.columnId;
+                    return (
+                      <option key={g.columnId} value={g.columnId}>
+                        {columnName}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            ) : (
+              <div className={styles.lineageColumnTabs}>
+                {graphsForAsset.map((g) => {
+                  const col = asset.columns.find((c) => c.id === g.columnId);
+                  const columnName = col?.name ?? g.columnId;
+                  const isSelected = (selectedColumnId && g.columnId === selectedColumnId) || (!selectedColumnId && graphsForAsset[0]?.columnId === g.columnId);
+                  return (
+                    <button
+                      key={g.columnId}
+                      type="button"
+                      onClick={() => setColumn(g.columnId)}
+                      className={`${styles.lineageColumnTab} ${isSelected ? styles.lineageColumnTabActive : ''}`}
+                    >
+                      <code>{columnName}</code>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {selectedColumnGraph && (
               <>
-                <LineageFlowCanvas graph={selectedColumnGraph} />
+                <LineageFlowCanvas graph={selectedColumnGraph} expandNodesByDefault={lineageViewMode === 'columnBased'} />
                 <div className={styles.lineageGraphLegend}>
                   <span className={styles.lineageGraphLegendItem}><span className={styles.lineageLegendDotSource} /> Source</span>
                   <span className={styles.lineageGraphLegendItem}><span className={styles.lineageLegendDotTransform} /> Transform</span>

@@ -1,11 +1,13 @@
 import { useCallback, useMemo } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Controls,
   Background,
   BackgroundVariant,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   addEdge,
   type Node,
   type Edge,
@@ -23,8 +25,23 @@ const NODE_HEIGHT = 56;
 const LAYER_GAP = 280;
 const NODE_GAP = 80;
 
-function getLayoutedElements(graph: LineageGraph): { nodes: Node[]; edges: Edge[] } {
+function columnsPerNode(graph: LineageGraph): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  graph.nodes.forEach((n) => { out[n.id] = []; });
+  graph.edges.forEach((e) => {
+    const col = e.columnName;
+    if (!out[e.from].includes(col)) out[e.from].push(col);
+    if (!out[e.to].includes(col)) out[e.to].push(col);
+  });
+  return out;
+}
+
+function getLayoutedElements(
+  graph: LineageGraph,
+  expandNodesByDefault: boolean
+): { nodes: Node[]; edges: Edge[] } {
   const { nodes: rawNodes, edges: rawEdges } = graph;
+  const nodeColumns = columnsPerNode(graph);
   const nodeIds = rawNodes.map((n) => n.id);
   const inDegree: Record<string, number> = {};
   const outEdges: Record<string, string[]> = {};
@@ -71,6 +88,8 @@ function getLayoutedElements(graph: LineageGraph): { nodes: Node[]; edges: Edge[
           nodeType: raw.type,
           system: raw.system,
           assetId: raw.assetId,
+          columns: nodeColumns[id] ?? [],
+          expanded: expandNodesByDefault,
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -95,8 +114,55 @@ function getLayoutedElements(graph: LineageGraph): { nodes: Node[]; edges: Edge[
   return { nodes, edges };
 }
 
-function LineageNode({ data, selected }: NodeProps) {
+function LineageFlowCanvasInner({ graph, expandNodesByDefault }: { graph: LineageGraph; expandNodesByDefault?: boolean }) {
+  const { nodes: initialNodes, edges: initialEdges } = useMemo(
+    () => getLayoutedElements(graph, expandNodesByDefault === true),
+    [graph, expandNodesByDefault]
+  );
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const onConnect = useCallback(
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      nodeTypes={nodeTypes}
+      fitView
+      fitViewOptions={{ padding: 0.2 }}
+      minZoom={0.2}
+      maxZoom={1.5}
+      defaultEdgeOptions={{
+        type: 'smoothstep',
+        markerEnd: { type: MarkerType.ArrowClosed },
+        style: { stroke: 'var(--color-border)' },
+      }}
+      className={styles.reactFlowClass}
+      proOptions={{ hideAttribution: true }}
+    >
+      <Controls showInteractive={false} className={styles.controls} />
+      <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--color-border)" />
+    </ReactFlow>
+  );
+}
+
+function LineageNode({ id, data, selected }: NodeProps) {
   const nodeType = (data.nodeType as string) || 'transform';
+  const columns = (data.columns as string[]) ?? [];
+  const expanded = data.expanded === true;
+  const { setNodes } = useReactFlow();
+  const toggleExpanded = useCallback(() => {
+    setNodes((ns) =>
+      ns.map((n) =>
+        n.id === id ? { ...n, data: { ...n.data, expanded: !(n.data as { expanded?: boolean }).expanded } } : n
+      )
+    );
+  }, [id, setNodes]);
   return (
     <div className={`${styles.lineageFlowNode} ${styles[`lineageFlowNode_${nodeType}`]} ${selected ? styles.lineageFlowNodeSelected : ''}`}>
       <Handle type="target" position={Position.Left} className={styles.handle} />
@@ -107,6 +173,25 @@ function LineageNode({ data, selected }: NodeProps) {
         {data.label}
       </div>
       {data.system && <div className={styles.lineageFlowNodeSystem}>{data.system}</div>}
+      {columns.length > 0 && (
+        <div className={styles.lineageFlowNodeColumns}>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); toggleExpanded(); }}
+            className={styles.lineageFlowNodeColumnsToggle}
+            aria-expanded={expanded}
+          >
+            Columns ({columns.length}) {expanded ? '▼' : '▶'}
+          </button>
+          {expanded && (
+            <ul className={styles.lineageFlowNodeColumnsList}>
+              {columns.map((c) => (
+                <li key={c} className={styles.lineageFlowNodeColumnsItem}>{c}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <Handle type="source" position={Position.Right} className={styles.handle} />
     </div>
   );
@@ -114,40 +199,18 @@ function LineageNode({ data, selected }: NodeProps) {
 
 const nodeTypes = { lineageNode: LineageNode };
 
-export function LineageFlowCanvas({ graph }: { graph: LineageGraph }) {
-  const { nodes: initialNodes, edges: initialEdges } = useMemo(() => getLayoutedElements(graph), [graph]);
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
-
+export function LineageFlowCanvas({
+  graph,
+  expandNodesByDefault,
+}: {
+  graph: LineageGraph;
+  expandNodesByDefault?: boolean;
+}) {
   return (
     <div className={styles.lineageFlowWrap}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.2}
-        maxZoom={1.5}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          markerEnd: { type: MarkerType.ArrowClosed },
-          style: { stroke: 'var(--color-border)' },
-        }}
-        className={styles.reactFlowClass}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Controls showInteractive={false} className={styles.controls} />
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--color-border)" />
-      </ReactFlow>
+      <ReactFlowProvider>
+        <LineageFlowCanvasInner graph={graph} expandNodesByDefault={expandNodesByDefault} />
+      </ReactFlowProvider>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   getApplicationById,
   dqRules,
 } from '../data/mock';
+import type { DQRule } from '../data/mock/types';
 import { useAppStore } from '../store/useAppStore';
 import { Card, CardHeader } from '../components/Card';
 import { Badge } from '../components/Badge';
@@ -24,10 +25,16 @@ export function ContractDetailPage() {
   const fromStatic = contractId ? getContractById(contractId) : null;
   const contract = fromStore ?? fromStatic;
   const setContractStatus = useAppStore((s) => s.setContractStatus);
+  const runtimeDqRules = useAppStore((s) => s.runtimeDqRules);
   const [rejectReason, setRejectReason] = useState('');
+  const [selectedDqRuleIds, setSelectedDqRuleIds] = useState<string[]>([]);
   const asset = contract ? getAssetById(contract.assetId) : null;
   const requesterApp = contract?.requestedByApplicationId ? getApplicationById(contract.requestedByApplicationId) : null;
   const approverApp = contract?.approvedByApplicationId ? getApplicationById(contract.approvedByApplicationId) : null;
+  const assetDqRules = asset
+    ? [...dqRules.filter((r) => r.assetId === asset.id), ...runtimeDqRules.filter((r) => r.assetId === asset.id)]
+    : [];
+  const getDqRuleById = (id: string) => dqRules.find((r) => r.id === id) ?? runtimeDqRules.find((r) => r.id === id);
 
   if (!contract) {
     return (
@@ -38,7 +45,9 @@ export function ContractDetailPage() {
     );
   }
 
-  const contractDqRules = (contract.dqRuleIds ?? []).map((id) => dqRules.find((r) => r.id === id)).filter(Boolean) as typeof dqRules;
+  const contractDqRules = (contract.dqRuleIds ?? [])
+    .map((id) => getDqRuleById(id))
+    .filter((r): r is DQRule => r != null);
 
   return (
     <div className={styles.page}>
@@ -138,6 +147,36 @@ export function ContractDetailPage() {
         )}
       </Card></div>
 
+      {/* Fit-for-purpose DQ checks (consumer) */}
+      {asset && (
+        <div style={{ marginBottom: 'var(--space-4)' }}><Card>
+          <CardHeader title="Fit-for-purpose DQ checks (optional)" />
+          <p className={styles.muted}>Select which data quality checks you want enabled for your consumption.</p>
+          {assetDqRules.length > 0 ? (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 'var(--space-2) 0 0' }}>
+              {assetDqRules.map((r) => (
+                <li key={r.id} style={{ marginBottom: 'var(--space-1)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedDqRuleIds.includes(r.id)}
+                      onChange={(e) =>
+                        setSelectedDqRuleIds((prev) =>
+                          e.target.checked ? [...prev, r.id] : prev.filter((id) => id !== r.id)
+                        )
+                      }
+                    />
+                    {r.name} ({r.type})
+                  </label>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.muted}>No DQ rules defined on this asset. Add rules on the asset Data quality tab.</p>
+          )}
+        </Card></div>
+      )}
+
       {/* Version history */}
       <Card>
         <CardHeader title="Version history" />
@@ -160,9 +199,33 @@ export function ContractDetailPage() {
         )}
       </Card>
 
+      {/* Consumer: Request access / Onboard */}
       {contract.status === 'approved' && (
-        <p style={{ marginTop: 'var(--space-4)' }}>
-          <Link to={`/contracts/consume/${contract.id}`}>Consume this contract →</Link>
+        <div style={{ marginTop: 'var(--space-4)' }}><Card>
+          <CardHeader title="Request access / Onboard" />
+          <p className={styles.muted}>As a consumer, request access and get a snapshot with your selected attributes and DQ checks.</p>
+          <p style={{ marginTop: 'var(--space-3)' }}>
+            <Link
+              to={`/contracts/consume/${contract.id}`}
+              state={{ selectedDqRuleIds }}
+              style={{
+                padding: 'var(--space-2) var(--space-4)',
+                background: 'var(--color-primary)',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: 'var(--radius)',
+                display: 'inline-block',
+              }}
+            >
+              Onboard →
+            </Link>
+          </p>
+        </Card></div>
+      )}
+
+      {(contract.status === 'pending_approval' || contract.status === 'draft') && (
+        <p className={styles.muted} style={{ marginTop: 'var(--space-4)' }}>
+          This contract is pending producer approval. You can request access once it is approved.
         </p>
       )}
 

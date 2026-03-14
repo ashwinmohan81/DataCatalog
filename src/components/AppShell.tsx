@@ -16,7 +16,7 @@ const NAV = [
   { path: '/tags', label: 'Tags' },
   { path: '/quality', label: 'Quality' },
   { path: '/compliance', label: 'Compliance' },
-  { path: '/connectors', label: 'Connectors' },
+  { path: '/settings', label: 'Settings' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

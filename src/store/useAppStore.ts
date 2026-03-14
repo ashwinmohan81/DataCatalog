@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PersonaId, DataContract, DataProduct, GlossaryTerm } from '../data/mock/types';
+import type { PersonaId, DataContract, DataProduct, GlossaryTerm, DQRule } from '../data/mock/types';
 import { notifications } from '../data/mock/notifications';
 
 type Notification = typeof notifications[number];
@@ -36,11 +36,42 @@ interface AppState {
   removeColumnTermLink: (assetId: string, columnId: string, termId: string) => void;
   /** Custom tags (data owner–managed). Use in Tag management and to tag attributes. */
   customTags: string[];
-  addCustomTag: (name: string) => void;
+  addCustomTag: (name: string, categoryId?: string | null) => void;
   removeCustomTag: (name: string) => void;
+  /** Tag categories for grouping tags. */
+  tagCategories: Array<{ id: string; name: string }>;
+  tagCategoryByTagName: Record<string, string>;
+  addTagCategory: (name: string) => void;
+  removeTagCategory: (id: string) => void;
+  updateTagCategory: (id: string, name: string) => void;
+  setTagCategoryForTag: (tagName: string, categoryId: string | null) => void;
   /** Column tag overrides: key = assetId:columnId, value = full tag list for that column. */
   columnTagOverrides: Record<string, string[]>;
   setColumnTags: (assetId: string, columnId: string, tags: string[]) => void;
+  /** Runtime-added DQ rules (prebuilt enabled or custom SQL). */
+  runtimeDqRules: DQRule[];
+  addDqRule: (r: DQRule) => void;
+  removeDqRule: (id: string) => void;
+  /** Current application (consumer or producer) for voting/commenting. Default demo consumer when persona is consumer. */
+  currentApplicationId: string | null;
+  setCurrentApplicationId: (id: string | null) => void;
+  /** Data product votes: [dataProductId][applicationId] = 1 | -1 | 0 */
+  dataProductVotes: Record<string, Record<string, number>>;
+  setVote: (dataProductId: string, applicationId: string, value: 1 | -1 | 0) => void;
+  /** Data product comments (one per consumer per product). */
+  dataProductComments: Array<{
+    id: string;
+    dataProductId: string;
+    applicationId: string;
+    text: string;
+    createdAt: string;
+    updatedAt?: string;
+    producerResponse?: string;
+    producerResponseAt?: string;
+  }>;
+  addOrUpdateComment: (dataProductId: string, applicationId: string, text: string) => void;
+  deleteComment: (dataProductId: string, applicationId: string) => void;
+  setProducerResponse: (commentId: string, response: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -108,14 +139,51 @@ export const useAppStore = create<AppState>((set) => ({
       ),
     })),
   customTags: [],
-  addCustomTag: (name) =>
+  addCustomTag: (name, categoryId) =>
     set((s) => {
       const n = name.trim();
       if (!n || s.customTags.includes(n)) return s;
-      return { customTags: [...s.customTags, n].sort() };
+      const nextTags = [...s.customTags, n].sort();
+      const nextByTag = { ...s.tagCategoryByTagName };
+      if (categoryId) nextByTag[n] = categoryId;
+      return { customTags: nextTags, tagCategoryByTagName: nextByTag };
     }),
   removeCustomTag: (name) =>
-    set((s) => ({ customTags: s.customTags.filter((t) => t !== name) })),
+    set((s) => {
+      const nextByTag = { ...s.tagCategoryByTagName };
+      delete nextByTag[name];
+      return { customTags: s.customTags.filter((t) => t !== name), tagCategoryByTagName: nextByTag };
+    }),
+  tagCategories: [],
+  tagCategoryByTagName: {},
+  addTagCategory: (name) =>
+    set((s) => {
+      const n = name.trim();
+      if (!n || s.tagCategories.some((c) => c.name === n)) return s;
+      const id = `tag-cat-${Date.now()}`;
+      return { tagCategories: [...s.tagCategories, { id, name: n }].sort((a, b) => a.name.localeCompare(b.name)) };
+    }),
+  removeTagCategory: (id) =>
+    set((s) => {
+      const nextByTag = { ...s.tagCategoryByTagName };
+      Object.keys(nextByTag).forEach((tag) => { if (nextByTag[tag] === id) delete nextByTag[tag]; });
+      return { tagCategories: s.tagCategories.filter((c) => c.id !== id), tagCategoryByTagName: nextByTag };
+    }),
+  updateTagCategory: (id, name) =>
+    set((s) => {
+      const n = name.trim();
+      if (!n) return s;
+      return {
+        tagCategories: s.tagCategories.map((c) => (c.id === id ? { ...c, name: n } : c)).sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    }),
+  setTagCategoryForTag: (tagName, categoryId) =>
+    set((s) => {
+      const next = { ...s.tagCategoryByTagName };
+      if (categoryId == null) delete next[tagName];
+      else next[tagName] = categoryId;
+      return { tagCategoryByTagName: next };
+    }),
   columnTagOverrides: {},
   setColumnTags: (assetId, columnId, tags) =>
     set((s) => {
@@ -124,5 +192,54 @@ export const useAppStore = create<AppState>((set) => ({
       if (tags.length === 0) delete next[key];
       else next[key] = tags;
       return { columnTagOverrides: next };
+    }),
+  runtimeDqRules: [],
+  addDqRule: (r) => set((s) => ({ runtimeDqRules: [...s.runtimeDqRules, r] })),
+  removeDqRule: (id) => set((s) => ({ runtimeDqRules: s.runtimeDqRules.filter((r) => r.id !== id) })),
+  currentApplicationId: 'app-bcbs-consumer',
+  setCurrentApplicationId: (id) => set({ currentApplicationId: id }),
+  dataProductVotes: {},
+  setVote: (dataProductId, applicationId, value) =>
+    set((s) => {
+      const next = { ...s.dataProductVotes };
+      if (!next[dataProductId]) next[dataProductId] = {};
+      const inner = { ...next[dataProductId] };
+      if (value === 0) delete inner[applicationId];
+      else inner[applicationId] = value;
+      if (Object.keys(inner).length === 0) delete next[dataProductId];
+      else next[dataProductId] = inner;
+      return { dataProductVotes: next };
+    }),
+  dataProductComments: [],
+  addOrUpdateComment: (dataProductId, applicationId, text) =>
+    set((s) => {
+      const id = `${dataProductId}:${applicationId}`;
+      const now = new Date().toISOString();
+      const existing = s.dataProductComments.find((c) => c.dataProductId === dataProductId && c.applicationId === applicationId);
+      if (existing) {
+        return {
+          dataProductComments: s.dataProductComments.map((c) =>
+            c.id === existing.id ? { ...c, text, updatedAt: now } : c
+          ),
+        };
+      }
+      return {
+        dataProductComments: [...s.dataProductComments, { id, dataProductId, applicationId, text, createdAt: now }],
+      };
+    }),
+  deleteComment: (dataProductId, applicationId) =>
+    set((s) => ({
+      dataProductComments: s.dataProductComments.filter(
+        (c) => !(c.dataProductId === dataProductId && c.applicationId === applicationId)
+      ),
+    })),
+  setProducerResponse: (commentId, response) =>
+    set((s) => {
+      const now = new Date().toISOString();
+      return {
+        dataProductComments: s.dataProductComments.map((c) =>
+          c.id === commentId ? { ...c, producerResponse: response || undefined, producerResponseAt: response ? now : undefined } : c
+        ),
+      };
     }),
 }));

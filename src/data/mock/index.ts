@@ -6,6 +6,7 @@ export { glossaries } from './glossaries';
 export { glossaryTerms } from './glossary';
 export { lineageGraphs } from './lineage';
 export { dqRules, dqRuns } from './dq';
+export { dqRuleTemplates } from './dqTemplates';
 export { workflowTasks } from './workflows';
 export { dataContracts } from './contracts';
 export { connectors } from './connectors';

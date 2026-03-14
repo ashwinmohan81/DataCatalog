@@ -15,7 +15,10 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import { assets, dqRuns, domains, type DataAsset } from '../data/mock';
+import { assets, dqRules, dqRuns, domains, type DataAsset } from '../data/mock';
+import { useAppStore } from '../store/useAppStore';
+import { getDqSummaryByDimensionForAssets } from '../utils/dataProductDqSummary';
+import { DQ_DIMENSION_IDS, DQ_DIMENSION_LABELS } from '../utils/dqDimensions';
 import { Card, CardHeader } from '../components/Card';
 import { Badge } from '../components/Badge';
 import styles from './Page.module.css';
@@ -70,6 +73,7 @@ export function InsightsPage() {
   const certified = searchParams.get('certified') ?? '';
   const owner = searchParams.get('owner') ?? '';
   const q = searchParams.get('q') ?? '';
+  const runtimeDqRules = useAppStore((s) => s.runtimeDqRules);
 
   const filteredAssets = useMemo(
     () =>
@@ -179,6 +183,32 @@ export function InsightsPage() {
     health: healthScore(a.id),
     glossary: glossaryMaturity(a.id),
   }));
+
+  const byDqDimensionRaw = useMemo(() => {
+    const assetIds = new Set(filteredAssets.map((a) => a.id));
+    return getDqSummaryByDimensionForAssets(assetIds, dqRules, runtimeDqRules);
+  }, [filteredAssets, runtimeDqRules]);
+
+  const byDqDimensionMap = useMemo(() => new Map(byDqDimensionRaw.map((d) => [d.dimension, d])), [byDqDimensionRaw]);
+  const byDqDimensionTable = useMemo(
+    () =>
+      DQ_DIMENSION_IDS.map((dim) => {
+        const agg = byDqDimensionMap.get(dim);
+        return {
+          dimension: dim,
+          label: DQ_DIMENSION_LABELS[dim],
+          ruleCount: agg?.ruleCount ?? 0,
+          passedCount: agg?.passedCount ?? 0,
+          scorePct: agg?.scorePct ?? null,
+          status: agg?.status ?? 'grey' as const,
+        };
+      }),
+    [byDqDimensionMap]
+  );
+  const byDqDimensionChartData = useMemo(
+    () => byDqDimensionTable.filter((d) => d.ruleCount > 0).map((d) => ({ name: d.label, dqHealth: d.scorePct ?? 0, ...d })),
+    [byDqDimensionTable]
+  );
 
   const dqTrendMock = [
     { week: 'W1 Mar', passRate: 92 },
@@ -296,6 +326,26 @@ export function InsightsPage() {
         </Card>
       </div>
 
+      {/* DQ by dimension – compact summary */}
+      {byDqDimensionTable.some((d) => d.ruleCount > 0) && (
+        <Card>
+          <CardHeader title="DQ health by dimension" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 'var(--space-3)' }}>
+            {byDqDimensionTable
+              .filter((d) => d.ruleCount > 0)
+              .map((d) => (
+                <div key={d.dimension}>
+                  <div className={styles.kpiLabel}>{d.label}</div>
+                  <div className={styles.kpiValue} style={{ fontSize: 'var(--text-lg)' }}>
+                    {d.scorePct != null ? `${d.scorePct}%` : '—'}
+                  </div>
+                  <span className={styles.muted} style={{ fontSize: 'var(--text-sm)' }}>{d.passedCount} of {d.ruleCount} passed</span>
+                </div>
+              ))}
+          </div>
+        </Card>
+      )}
+
       {/* Key insights dashboards – KPI graphs */}
       <div className={styles.insightsChartsRow}>
         <Card>
@@ -395,6 +445,26 @@ export function InsightsPage() {
                 <Bar dataKey="dqHealth" name="DQ health %" fill="var(--color-success)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </Card>
+        <Card>
+          <CardHeader title="DQ health by DQ dimension" />
+          <div className={styles.chartContainer}>
+            {byDqDimensionChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={byDqDimensionChartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="name" tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)' }}
+                  />
+                  <Bar dataKey="dqHealth" name="Pass %" fill="var(--color-success)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className={styles.muted}>No DQ rules in filtered assets</p>
+            )}
           </div>
         </Card>
         <Card>
@@ -535,6 +605,39 @@ export function InsightsPage() {
                   <td>
                     <Badge variant={r.dqHealth >= 80 ? 'success' : r.dqHealth >= 50 ? 'warning' : 'error'}>
                       {r.dqHealth}%
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="DQ results by DQ dimension" />
+        <p className={styles.muted}>Pass rate and RAG status per data quality dimension (Correctness, Completeness, Timeliness, etc.) for the filtered asset set.</p>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>DQ dimension</th>
+                <th>Rules</th>
+                <th>Passed</th>
+                <th>Pass rate %</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byDqDimensionTable.map((r) => (
+                <tr key={r.dimension}>
+                  <td>{r.label}</td>
+                  <td>{r.ruleCount}</td>
+                  <td>{r.passedCount}</td>
+                  <td>{r.scorePct != null ? `${r.scorePct}%` : '—'}</td>
+                  <td>
+                    <Badge variant={r.status === 'green' ? 'success' : r.status === 'amber' ? 'warning' : r.status === 'red' ? 'error' : 'default'}>
+                      {r.status === 'green' ? 'Good' : r.status === 'amber' ? 'Warning' : r.status === 'red' ? 'Fail' : '—'}
                     </Badge>
                   </td>
                 </tr>

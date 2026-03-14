@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { ContractAttribute, ContractSLA } from '../data/mock/types';
+import type { ContractAttribute, ContractSLA, DQRule } from '../data/mock/types';
 import { getContractById, getAssetById, dqRules } from '../data/mock';
 import { useAppStore } from '../store/useAppStore';
 import { Card, CardHeader } from '../components/Card';
+import { buildOdcsYaml } from '../utils/contractToOdcs';
 import styles from './Page.module.css';
 
 const SLA_TYPES: ContractSLA['type'][] = ['freshness', 'availability', 'latency'];
@@ -43,6 +44,13 @@ export function ContractEditPage() {
   const [dqRuleIds, setDqRuleIds] = useState<string[]>(contract?.dqRuleIds ?? []);
   const [submitted, setSubmitted] = useState(false);
   const [amendmentMessage, setAmendmentMessage] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [pushModalOpen, setPushModalOpen] = useState(false);
+  const [pushProvider, setPushProvider] = useState<'s3' | 'gcs' | 'azure'>('s3');
+  const [pushBucket, setPushBucket] = useState('');
+  const [pushPath, setPushPath] = useState('');
+
+  const getDqRuleById = (id: string) => dqRules.find((r) => r.id === id) ?? runtimeDqRules.find((r) => r.id === id);
 
   const toggleColumn = (id: string) => {
     setSelectedColumnIds((s) => {
@@ -173,6 +181,76 @@ export function ContractEditPage() {
         </p>
       )}
 
+      <div style={{ marginBottom: 'var(--space-3)' }}>
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            type="button"
+            onClick={() => setExportOpen((o) => !o)}
+            style={{
+              padding: 'var(--space-1) var(--space-3)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius)',
+              background: 'var(--color-surface)',
+              cursor: 'pointer',
+            }}
+          >
+            Export
+          </button>
+          {exportOpen && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setExportOpen(false)} aria-hidden="true" />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: 'var(--space-1)',
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius)',
+                  boxShadow: 'var(--shadow-md)',
+                  zIndex: 11,
+                  minWidth: 180,
+                }}
+              >
+                <button
+                  type="button"
+                  style={{ display: 'block', width: '100%', padding: 'var(--space-2) var(--space-3)', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }}
+                  onClick={() => {
+                    if (!contract) return;
+                    const dqRulesForExport = (contract.dqRuleIds ?? [])
+                      .map((id) => getDqRuleById(id))
+                      .filter((r): r is DQRule => r != null);
+                    const yamlStr = buildOdcsYaml(contract, asset, dqRulesForExport);
+                    const blob = new Blob([yamlStr], { type: 'application/yaml' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `contract-${contract.id}-v${contract.version}.yaml`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                    setExportOpen(false);
+                  }}
+                >
+                  Export as YAML
+                </button>
+                <button
+                  type="button"
+                  style={{ display: 'block', width: '100%', padding: 'var(--space-2) var(--space-3)', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer' }}
+                  onClick={() => {
+                    if (!contract) return;
+                    setPushPath(`contracts/${contract.id}.yaml`);
+                    setPushModalOpen(true);
+                    setExportOpen(false);
+                  }}
+                >
+                  Push to object store
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 'var(--space-4)' }}>
           <Card>
@@ -296,6 +374,111 @@ export function ContractEditPage() {
           {hasConsumer ? 'Submit amendment for consumer approval' : 'Save changes'}
         </button>
       </form>
+
+      {pushModalOpen && contract && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 20,
+          }}
+          onClick={() => setPushModalOpen(false)}
+        >
+          <div
+            style={{
+              background: 'var(--color-surface)',
+              padding: 'var(--space-4)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow-lg)',
+              maxWidth: 420,
+              width: '100%',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: 'var(--space-3)' }}>Push to object store</h2>
+            <p className={styles.muted} style={{ marginBottom: 'var(--space-3)' }}>
+              In production, this would push the contract YAML to the selected store. For now, copy the URI and download the YAML to upload manually.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <label>
+                <span className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Provider</span>
+                <select
+                  value={pushProvider}
+                  onChange={(e) => setPushProvider(e.target.value as 's3' | 'gcs' | 'azure')}
+                  style={{ width: '100%', padding: 'var(--space-2)' }}
+                >
+                  <option value="s3">Amazon S3</option>
+                  <option value="gcs">Google Cloud Storage</option>
+                  <option value="azure">Azure Blob Storage</option>
+                </select>
+              </label>
+              <label>
+                <span className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Bucket</span>
+                <input
+                  type="text"
+                  value={pushBucket}
+                  onChange={(e) => setPushBucket(e.target.value)}
+                  placeholder="my-bucket"
+                  style={{ width: '100%', padding: 'var(--space-2)' }}
+                />
+              </label>
+              <label>
+                <span className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Path</span>
+                <input
+                  type="text"
+                  value={pushPath}
+                  onChange={(e) => setPushPath(e.target.value)}
+                  placeholder="contracts/contract-id.yaml"
+                  style={{ width: '100%', padding: 'var(--space-2)' }}
+                />
+              </label>
+            </div>
+            <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const uri = pushProvider === 'azure'
+                    ? `https://${pushBucket}.blob.core.windows.net/${pushPath}`
+                    : `${pushProvider === 's3' ? 's3' : 'gs'}://${pushBucket}/${pushPath}`;
+                  void navigator.clipboard.writeText(uri);
+                }}
+                style={{ padding: 'var(--space-2) var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-surface)', cursor: 'pointer' }}
+              >
+                Copy URI
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const dqRulesForExport = (contract.dqRuleIds ?? [])
+                    .map((id) => getDqRuleById(id))
+                    .filter((r): r is DQRule => r != null);
+                  const yamlStr = buildOdcsYaml(contract, asset, dqRulesForExport);
+                  const blob = new Blob([yamlStr], { type: 'application/yaml' });
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(blob);
+                  a.download = `contract-${contract.id}-v${contract.version}.yaml`;
+                  a.click();
+                  URL.revokeObjectURL(a.href);
+                }}
+                style={{ padding: 'var(--space-2) var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', background: 'var(--color-surface)', cursor: 'pointer' }}
+              >
+                Download YAML
+              </button>
+              <button
+                type="button"
+                onClick={() => setPushModalOpen(false)}
+                style={{ padding: 'var(--space-2) var(--space-3)', border: 'none', borderRadius: 'var(--radius)', background: 'var(--color-text-muted)', color: 'white', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,13 +13,14 @@ import {
   dqRuleTemplates,
   glossaryTerms as staticGlossaryTerms,
 } from '../data/mock';
-import type { DQRule } from '../data/mock/types';
+import type { DQRule, DQDimension } from '../data/mock/types';
 import { useAppStore } from '../store/useAppStore';
 import { Card, CardHeader } from '../components/Card';
 import { Badge } from '../components/Badge';
 import { Tabs } from '../components/Tabs';
 import { LineageFlowCanvas } from '../components/LineageFlowCanvas';
 import { getRecommendedTerms } from '../utils/glossaryFuzzyMatch';
+import { getRuleDimension, DQ_DIMENSION_IDS, DQ_DIMENSION_LABELS } from '../utils/dqDimensions';
 import styles from './Page.module.css';
 
 const LINEAGE_COLUMN_TABS_MAX = 8;
@@ -37,6 +38,7 @@ export function AssetDetailPage() {
   const [addRuleConfig, setAddRuleConfig] = useState<Record<string, string>>({});
   const [addRuleName, setAddRuleName] = useState('');
   const [addRuleSql, setAddRuleSql] = useState('');
+  const [addRuleDimension, setAddRuleDimension] = useState<DQDimension>('correctness');
   const [selectedGlossaryId, setSelectedGlossaryId] = useState('');
   const [autoMapResults, setAutoMapResults] = useState<Array<{ columnId: string; columnName: string; columnDescription?: string; term: import('../data/mock/types').GlossaryTerm; score: number }> | null>(null);
   const [acceptedMappings, setAcceptedMappings] = useState<Record<string, string>>({});
@@ -119,7 +121,7 @@ export function AssetDetailPage() {
     { id: 'lineage', label: 'Lineage' },
     { id: 'dq', label: 'Data quality' },
     { id: 'versions', label: 'Versions' },
-    ...(contract ? [{ id: 'contract' as TabId, label: 'Contract' }] : []),
+    ...(contract && productInfo ? [{ id: 'contract' as TabId, label: 'Contract' }] : []),
     { id: 'activity', label: 'Activity' },
   ];
 
@@ -148,7 +150,7 @@ export function AssetDetailPage() {
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
         Owner: {asset.owner}
         {asset.platform && ` · Platform: ${asset.platform}`}
-        {' · Data product: '}{productInfo && <Link to={`/data-product/${resolvedDataProductId}`}>{productInfo.dataProduct.name}</Link>}
+        {' · Data product: '}{productInfo ? <Link to={`/data-product/${resolvedDataProductId}`}>{productInfo.dataProduct.name}</Link> : '—'}
         {asset.lastScanAt && ` · Last scan: ${new Date(asset.lastScanAt).toLocaleString()}`}
       </p>
 
@@ -608,6 +610,7 @@ export function AssetDetailPage() {
                     <thead>
                       <tr>
                         <th>Rule</th>
+                        <th>Dimension</th>
                         <th>Type</th>
                         <th>Engine</th>
                         <th>Last run</th>
@@ -619,6 +622,7 @@ export function AssetDetailPage() {
                       {assetDqRules.map((r) => (
                         <tr key={r.id}>
                           <td>{r.name}</td>
+                          <td><Badge variant="default">{DQ_DIMENSION_LABELS[getRuleDimension(r, (id) => dqRuleTemplates.find((t) => t.id === id))]}</Badge></td>
                           <td>{r.type}</td>
                           <td>{r.engine === 'great_expectations' ? <Badge variant="info">Great Expectations</Badge> : r.engine === 'custom_sql' ? <Badge variant="default">Custom SQL</Badge> : '—'}</td>
                           <td>{r.lastRunAt ? new Date(r.lastRunAt).toLocaleString() : '—'}</td>
@@ -656,7 +660,13 @@ export function AssetDetailPage() {
                     <label className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Template</label>
                     <select
                       value={addRuleTemplateId}
-                      onChange={(e) => { setAddRuleTemplateId(e.target.value); setAddRuleConfig({}); setAddRuleColumnId(''); }}
+                      onChange={(e) => {
+                        const t = dqRuleTemplates.find((x) => x.id === e.target.value);
+                        setAddRuleTemplateId(e.target.value);
+                        setAddRuleConfig({});
+                        setAddRuleColumnId('');
+                        setAddRuleDimension(t?.dimension ?? 'correctness');
+                      }}
                       style={{ padding: 'var(--space-2)', minWidth: 280 }}
                     >
                       <option value="">Select a rule…</option>
@@ -704,6 +714,20 @@ export function AssetDetailPage() {
                           </div>
                         ))}
                         <div style={{ marginBottom: 'var(--space-2)' }}>
+                          <label className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>DQ dimension</label>
+                          <select
+                            value={addRuleDimension}
+                            onChange={(e) => setAddRuleDimension(e.target.value as DQDimension)}
+                            style={{ padding: 'var(--space-2)', minWidth: 200 }}
+                            aria-label="DQ dimension"
+                          >
+                            {DQ_DIMENSION_IDS.map((dim) => (
+                              <option key={dim} value={dim}>{DQ_DIMENSION_LABELS[dim]}</option>
+                            ))}
+                          </select>
+                          <span className={styles.muted} style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>For reporting (Correctness, Completeness, etc.)</span>
+                        </div>
+                        <div style={{ marginBottom: 'var(--space-2)' }}>
                           <label className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Rule name (optional)</label>
                           <input type="text" value={addRuleName} onChange={(e) => setAddRuleName(e.target.value)} placeholder="e.g. exposure_amount not null" style={{ padding: 'var(--space-2)', minWidth: 280 }} />
                         </div>
@@ -719,6 +743,7 @@ export function AssetDetailPage() {
                               id: `dq-runtime-${Date.now()}`,
                               name: addRuleName.trim() || (col ? `${template.name} (${col.name})` : template.name),
                               type: template.ruleType,
+                              dimension: addRuleDimension,
                               assetId: asset.id,
                               columnId: col?.id,
                               config: Object.keys(config).length ? config : undefined,
@@ -727,7 +752,7 @@ export function AssetDetailPage() {
                               engine: template.engine,
                             };
                             addDqRule(rule);
-                            setAddRuleTemplateId(''); setAddRuleColumnId(''); setAddRuleConfig({}); setAddRuleName('');
+                            setAddRuleTemplateId(''); setAddRuleColumnId(''); setAddRuleConfig({}); setAddRuleName(''); setAddRuleDimension(template.dimension);
                           }}
                           disabled={template.columnRequired ? !addRuleColumnId : template.id === 'custom_sql' ? !addRuleConfig.sql : false}
                           style={{ padding: 'var(--space-2) var(--space-4)', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer' }}
@@ -746,6 +771,20 @@ export function AssetDetailPage() {
                     <input type="text" value={addRuleName} onChange={(e) => setAddRuleName(e.target.value)} placeholder="e.g. Custom: positive amount" style={{ padding: 'var(--space-2)', minWidth: 280 }} />
                   </div>
                   <div style={{ marginBottom: 'var(--space-2)' }}>
+                    <label className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>DQ dimension</label>
+                    <select
+                      value={addRuleDimension}
+                      onChange={(e) => setAddRuleDimension(e.target.value as DQDimension)}
+                      style={{ padding: 'var(--space-2)', minWidth: 200 }}
+                      aria-label="DQ dimension"
+                    >
+                      {DQ_DIMENSION_IDS.map((dim) => (
+                        <option key={dim} value={dim}>{DQ_DIMENSION_LABELS[dim]}</option>
+                      ))}
+                    </select>
+                    <span className={styles.muted} style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>For reporting</span>
+                  </div>
+                  <div style={{ marginBottom: 'var(--space-2)' }}>
                     <label className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>SQL (return rows that violate; rule fails if any returned)</label>
                     <textarea value={addRuleSql} onChange={(e) => setAddRuleSql(e.target.value)} placeholder="SELECT id FROM my_table WHERE amount < 0" rows={3} style={{ width: '100%', maxWidth: 480, padding: 'var(--space-2)' }} />
                   </div>
@@ -756,12 +795,13 @@ export function AssetDetailPage() {
                         id: `dq-runtime-${Date.now()}`,
                         name: addRuleName.trim() || 'Custom SQL rule',
                         type: 'custom_sql',
+                        dimension: addRuleDimension,
                         assetId: asset.id,
                         sql: addRuleSql.trim(),
                         engine: 'custom_sql',
                       };
                       addDqRule(rule);
-                      setAddRuleName(''); setAddRuleSql('');
+                      setAddRuleName(''); setAddRuleSql(''); setAddRuleDimension('correctness');
                     }}
                     disabled={!addRuleSql.trim()}
                     style={{ padding: 'var(--space-2) var(--space-4)', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer' }}

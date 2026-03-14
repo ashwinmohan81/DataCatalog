@@ -27,6 +27,24 @@
 - **Related assets:** On asset detail, show “Related” or “Consumers also viewed.”
 - **Acceptance:** User can discover assets without knowing exact names by browsing domains and by featured/recent sections.
 
+### 1.3 Search entry point and navigation
+- **No dedicated Search tab:** "Search" is not a top-level navigation item. Search is triggered only from the **global search bar** in the header (existing §1.1 behavior).
+- **Submit behavior:** When the user submits the search bar:
+  - **Option A (recommended for consistency):** Navigate to a **search results page** (e.g. `/search?q=...`) that shows unified results (assets, glossary terms, data products) with faceted filters. The results page is reachable only via the bar or direct URL, not via a nav link.
+  - **Option B:** Navigate to **Catalog** (or Marketplace) with a query parameter (e.g. `/catalog?q=...`) and show filtered results there; no dedicated search results page.
+- **Acceptance criteria:** (1) Top-level nav does not include "Search". (2) User can search by entering text in the global bar and submitting. (3) Results are shown per the chosen option (dedicated page or Catalog/Marketplace with query). (4) Faceted filters (zone, application, platform, etc.) continue to apply as in §1.1.
+
+### 1.4 Text-to-metadata (natural language) discovery
+- **Purpose:** Allow users to describe what they need in natural language (e.g. "tables with customer credit exposure for risk reporting") and receive data assets (and optionally glossary terms and data products) that match that description.
+- **Entry point:** A dedicated experience — either a dedicated page (e.g. "Find by description" or "Natural language search") reachable from nav or from the search bar (e.g. "Describe what you need" link/mode), or an optional mode on the same search results page. No requirement to replace keyword search; this can coexist.
+- **User flow:** (1) User sees a text area or input. (2) User types one or more sentences in English. (3) User triggers search (button or submit). (4) System interprets the text and returns a set of matching data assets (and optionally glossary terms, data products) with brief context (e.g. why the asset matched). (5) User can refine or filter results using existing facets.
+- **Mock behavior (no real NLP):** For the mock or MVP, interpretation is best-effort without a semantic backend:
+  - **Keyword extraction:** Split the input into significant words (e.g. drop stopwords), match against asset name, displayName, description, tags, domain/subdomain/product names, and glossary term name/definition.
+  - **Optional phrase-to-metadata map:** A small set of example phrases or concepts mapped to metadata (e.g. "credit exposure" or "risk reporting" → domain Risk, tags such as "BCBS 239", "exposure"). Use these to boost or filter results (e.g. restrict to domain + keyword match).
+  - Results are presented in the same result-type sections as keyword search (assets, terms, products) with optional short "matched because" hints (e.g. "Matched: domain Risk, tag exposure").
+- **Future (real implementation):** A later phase may use embeddings, an LLM, or a semantic layer to map natural language to concepts/metadata and to asset IDs; the UX (describe need → see assets) remains the same.
+- **Acceptance criteria:** (1) User can enter free-form English in a dedicated "text to metadata" entry point. (2) Submitting returns data assets (and optionally terms/products) that match the description. (3) In the mock, matching is based on keyword extraction and/or a configurable phrase-to-metadata mapping. (4) Results are clearly labeled by type (asset / term / product) and optionally show why they matched. (5) Existing faceted filters can be applied to narrow results.
+
 ---
 
 ## 2. Personas & Customizable Views
@@ -209,6 +227,11 @@
 - **Sample failures:** For failed rules, show sample failing rows or count (mock).
 - **Results feed insights:** DQ results are used in Insights (asset health, pass rate).
 
+### 12.3 DQ dimensions (categorization and reporting)
+- **Dimensions:** Every DQ rule is categorized into one of: Correctness, Completeness, Timeliness, Uniqueness, Validity, Consistency. See `docs/dq-dimensions.md` for definitions and rule–dimension mapping.
+- **Reporting:** Insights report DQ by these dimensions (KPIs, charts, tables). Data product and asset DQ views show per-dimension breakdown where applicable.
+- **Acceptance:** All rules have a dimension (stored or derived). Insights show DQ breakdown by DQ dimension. Data product summary and asset DQ tab expose dimension-level metrics. Data Quality page supports filter and display by dimension.
+
 ---
 
 ## 13. Insights
@@ -255,7 +278,7 @@
 
 ## 16. Modern Catalog Features (To Incorporate)
 
-- **Semantic/NLP search:** Search that understands intent (mock: keyword + facets; real implementation would use NLP).
+- **Semantic/NLP search:** Search that understands intent (mock: keyword + facets; real implementation would use NLP). See §1.4 for the text-to-metadata (natural language) discovery experience.
 - **Domain-based discovery:** Browse and filter by domain/subdomain/data product as first-class.
 - **Federated governance:** Domain-level ownership with central glossary and policy placeholders.
 - **Self-service access workflows:** Change request and access request flows (mock).
@@ -272,3 +295,5 @@
 - Real DQ execution or SQL run.
 - Real chat backend or NLP.
 - Persistent database; mock data is client-side only.
+
+**Note:** Text-to-metadata discovery (§1.4) is in scope as a UX and mock (keyword/phrase-based) behavior; only a real NLP/LLM backend is out of scope for the mock.

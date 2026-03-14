@@ -6,7 +6,6 @@ import { domains } from '../data/mock/domains';
 import styles from './AppShell.module.css';
 
 const NAV = [
-  { path: '/search', label: 'Search' },
   { path: '/catalog', label: 'Catalog' },
   { path: '/marketplace', label: 'Marketplace' },
   { path: '/inventory', label: 'Inventory' },

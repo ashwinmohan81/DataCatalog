@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { dataContracts, assets } from '../data/mock';
+import { dataContracts, assets, getAssetById, assetBelongsToDataProduct } from '../data/mock';
 import { useAppStore } from '../store/useAppStore';
 import { Card, CardHeader } from '../components/Card';
 import { Badge } from '../components/Badge';
@@ -15,10 +15,14 @@ const statusVariant: Record<string, 'success' | 'warning' | 'error' | 'default'>
 export function ContractsPage() {
   const contractRequests = useAppStore((s) => s.contractRequests);
   const contractAmendmentRequests = useAppStore((s) => s.contractAmendmentRequests);
-  const allContracts = [
+  const allContractsRaw = [
     ...dataContracts,
     ...contractRequests.filter((r) => !dataContracts.some((c) => c.id === r.id)),
   ];
+  const allContracts = allContractsRaw.filter((c) => {
+    const asset = getAssetById(c.assetId);
+    return asset != null && assetBelongsToDataProduct(asset);
+  });
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>Data contracts</h1>

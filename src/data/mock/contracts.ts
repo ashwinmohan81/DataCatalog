@@ -58,6 +58,31 @@ export const dataContracts: DataContract[] = [
     ],
   },
   {
+    id: 'contract-npe',
+    name: 'NPE Exposures Data Contract',
+    assetId: 'asset-npe',
+    version: 1,
+    createdAt: '2025-02-20T10:00:00Z',
+    createdBy: 'Jane Risk',
+    status: 'approved',
+    requestedByApplicationId: 'app-bcbs-consumer',
+    approvedByApplicationId: 'app-risk-platform',
+    approvedAt: '2025-02-22T14:00:00Z',
+    slo: 'Daily 06:00 UTC',
+    slas: [
+      { type: 'freshness', target: 'Daily 06:00 UTC', unit: 'schedule' },
+      { type: 'availability', target: '99.5%', unit: 'uptime' },
+    ],
+    dqRuleIds: [],
+    schema: [
+      { id: 'attr-n1', name: 'npe_id', type: 'VARCHAR', description: 'Unique NPE identifier', required: true, glossaryTermId: 'term-npe' },
+      { id: 'attr-n2', name: 'exposure_amount', type: 'DECIMAL(18,2)', description: 'NPE exposure amount', required: true, glossaryTermId: 'term-exposure-amount' },
+    ],
+    versionHistory: [
+      { version: 1, at: '2025-02-20T10:00:00Z', by: 'Jane Risk', changeSummary: 'Initial contract for NPE data product' },
+    ],
+  },
+  {
     id: 'contract-transactions-pending',
     name: 'Transaction Summary Contract (pending)',
     assetId: 'asset-transactions',

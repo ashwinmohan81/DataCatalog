@@ -13,6 +13,7 @@ import {
   getComment,
 } from '../utils/dataProductVoting';
 import { getDataProductDqSummary } from '../utils/dataProductDqSummary';
+import { DQ_DIMENSION_IDS, DQ_DIMENSION_LABELS } from '../utils/dqDimensions';
 import styles from './Page.module.css';
 
 export function DataProductDetailPage() {
@@ -140,6 +141,23 @@ export function DataProductDetailPage() {
                 <span className={styles.muted} style={{ fontSize: 'var(--text-sm)' }}>consuming this product</span>
               </div>
             </div>
+            {dq.ruleCount > 0 && Object.keys(dq.byDimension).length > 0 && (
+              <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--color-border)' }}>
+                <strong style={{ display: 'block', marginBottom: 'var(--space-2)' }}>DQ by dimension</strong>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                  {DQ_DIMENSION_IDS.map((dim) => {
+                    const agg = dq.byDimension[dim];
+                    if (!agg || agg.ruleCount === 0) return null;
+                    const statusVariant = agg.status === 'green' ? 'success' : agg.status === 'amber' ? 'warning' : agg.status === 'red' ? 'error' : 'default';
+                    return (
+                      <Badge key={dim} variant={statusVariant}>
+                        {DQ_DIMENSION_LABELS[dim]}: {agg.scorePct != null ? `${agg.scorePct}%` : '—'}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </Card>
         );
       })()}
@@ -375,7 +393,7 @@ export function DataProductDetailPage() {
         )}
         {false && hasConsumed && myComment && (
           <div style={{ padding: 'var(--space-3)' }}>
-            <p className={styles.muted} style={{ fontSize: 'var(--text-sm)' }}>Your comment: “{myComment.text}” — Edit or Delete above.</p>
+            <p className={styles.muted} style={{ fontSize: 'var(--text-sm)' }}>Your comment: “{myComment?.text}” — Edit or Delete above.</p>
           </div>
         )}
       </Card>

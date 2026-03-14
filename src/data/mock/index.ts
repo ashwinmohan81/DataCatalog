@@ -19,6 +19,12 @@ import { dataContracts } from './contracts';
 import { glossaries } from './glossaries';
 import { glossaryTerms } from './glossary';
 import { applications } from './applications';
+import type { DataAsset, DataProduct } from './types';
+
+/** True if the asset is part of a data product (has a valid dataProductId that resolves). */
+export function assetBelongsToDataProduct(asset: DataAsset, runtimeProducts: DataProduct[] = []): boolean {
+  return Boolean(asset.dataProductId && getDataProductWithContext(asset.dataProductId, runtimeProducts));
+}
 
 export function getApplicationById(id: string) {
   return applications.find((a) => a.id === id) ?? null;

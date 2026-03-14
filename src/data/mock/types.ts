@@ -36,6 +36,9 @@ export type TaskStatus = 'open' | 'in_progress' | 'done';
 
 export type DQRuleType = 'null_check' | 'uniqueness' | 'range' | 'regex' | 'custom_sql';
 
+/** DQ dimension for categorization and reporting (e.g. Correctness, Completeness, Timeliness). */
+export type DQDimension = 'correctness' | 'completeness' | 'timeliness' | 'uniqueness' | 'validity' | 'consistency';
+
 /** Rule source: prebuilt (e.g. Great Expectations) or custom SQL. */
 export type DQRuleEngine = 'great_expectations' | 'custom_sql';
 
@@ -49,6 +52,8 @@ export interface DQRuleTemplate {
   engine: DQRuleEngine;
   /** Maps to DQRuleType for display/filter. */
   ruleType: DQRuleType;
+  /** DQ dimension for reporting (Correctness, Completeness, etc.). */
+  dimension: DQDimension;
   /** If true, rule is column-level and requires columnId. */
   columnRequired: boolean;
   /** Config keys and hints for building the rule (e.g. min, max, regex). */
@@ -99,7 +104,8 @@ export interface DataAsset {
   zone?: AssetZone | null;
   domainId: string;
   subdomainId: string;
-  dataProductId: string;
+  /** When absent, asset is not linked to any data product. */
+  dataProductId?: string;
   isOutputPort: boolean;
   owner: string;
   ownerEmail: string;
@@ -203,6 +209,8 @@ export interface DQRule {
   sql?: string;
   lastRunAt?: string;
   lastRunPassed?: boolean;
+  /** DQ dimension for reporting; when absent, derived from type. */
+  dimension?: DQDimension;
   /** When set, rule was enabled from a prebuilt template (e.g. Great Expectations). */
   templateId?: string;
   engine?: DQRuleEngine;

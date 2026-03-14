@@ -34,6 +34,7 @@ export const domains: Domain[] = [
             owner: 'Jane Risk',
             ownerEmail: 'jane.risk@company.com',
             outputPortAssetIds: ['asset-npe'],
+            contractId: 'contract-npe',
             tags: ['BCBS 239', 'NPE'],
             certified: true,
           },

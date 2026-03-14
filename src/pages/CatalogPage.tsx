@@ -28,8 +28,9 @@ export function CatalogPage() {
   const runtimeProducts = useAppStore((s) => s.dataProducts);
   const assetDataProductOverrides = useAppStore((s) => s.assetDataProductOverrides);
   const staticProductList = domains.flatMap((d) => d.subdomains.flatMap((s) => s.dataProducts));
-  const getProductName = (dataProductId: string) =>
-    getDataProductWithContext(dataProductId, runtimeProducts)?.dataProduct.name
+  const getProductName = (dataProductId: string | undefined) =>
+    !dataProductId ? null
+    : getDataProductWithContext(dataProductId, runtimeProducts)?.dataProduct.name
     ?? staticProductList.find((dp) => dp.id === dataProductId)?.name
     ?? dataProductId;
   let assetList = domainId
@@ -138,9 +139,12 @@ export function CatalogPage() {
                   <td>{a.type}</td>
                   <td>{a.owner}</td>
                   <td>
-                    <Link to={`/data-product/${assetDataProductOverrides[a.id] ?? a.dataProductId}`}>
-                      {getProductName(assetDataProductOverrides[a.id] ?? a.dataProductId)}
-                    </Link>
+                    {(() => {
+                      const dpId = assetDataProductOverrides[a.id] ?? a.dataProductId;
+                      const name = getProductName(dpId);
+                      if (!dpId || name == null) return '—';
+                      return <Link to={`/data-product/${dpId}`}>{name}</Link>;
+                    })()}
                   </td>
                   <td>{a.lastScanAt ? new Date(a.lastScanAt).toLocaleString() : '—'}</td>
                   <td>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ContractAttribute, ContractSLA } from '../data/mock/types';
-import { assets, dqRules } from '../data/mock';
+import { assets, dqRules, assetBelongsToDataProduct } from '../data/mock';
 import { useAppStore } from '../store/useAppStore';
 import { Card, CardHeader } from '../components/Card';
 import styles from './Page.module.css';
@@ -125,9 +125,11 @@ export function ContractRequestPage() {
                 style={{ width: '100%', padding: 'var(--space-2)' }}
               >
                 <option value="">Select asset…</option>
-                {assets.filter((a) => a.type === 'table').map((a) => (
-                  <option key={a.id} value={a.id}>{a.displayName}</option>
-                ))}
+                {assets
+                  .filter((a) => a.type === 'table' && assetBelongsToDataProduct(a))
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>{a.displayName}</option>
+                  ))}
               </select>
             </label>
           </div>

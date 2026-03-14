@@ -8,6 +8,7 @@ export const dqRuleTemplates: DQRuleTemplate[] = [
     description: 'Fail when the column contains nulls (Great Expectations).',
     engine: 'great_expectations',
     ruleType: 'null_check',
+    dimension: 'completeness',
     columnRequired: true,
     configSchema: [{ key: 'column', label: 'Column', required: true, placeholder: 'column_name' }],
   },
@@ -18,6 +19,7 @@ export const dqRuleTemplates: DQRuleTemplate[] = [
     description: 'Fail when the column has duplicate values.',
     engine: 'great_expectations',
     ruleType: 'uniqueness',
+    dimension: 'uniqueness',
     columnRequired: true,
     configSchema: [{ key: 'column', label: 'Column', required: true, placeholder: 'column_name' }],
   },
@@ -28,6 +30,7 @@ export const dqRuleTemplates: DQRuleTemplate[] = [
     description: 'Fail when values fall outside min/max (inclusive).',
     engine: 'great_expectations',
     ruleType: 'range',
+    dimension: 'validity',
     columnRequired: true,
     configSchema: [
       { key: 'column', label: 'Column', required: true, placeholder: 'column_name' },
@@ -42,6 +45,7 @@ export const dqRuleTemplates: DQRuleTemplate[] = [
     description: 'Fail when values do not match the given regex.',
     engine: 'great_expectations',
     ruleType: 'regex',
+    dimension: 'validity',
     columnRequired: true,
     configSchema: [
       { key: 'column', label: 'Column', required: true, placeholder: 'column_name' },
@@ -55,6 +59,7 @@ export const dqRuleTemplates: DQRuleTemplate[] = [
     description: 'Fail when values are not in the allowed set.',
     engine: 'great_expectations',
     ruleType: 'custom_sql',
+    dimension: 'validity',
     columnRequired: true,
     configSchema: [
       { key: 'column', label: 'Column', required: true, placeholder: 'column_name' },
@@ -68,6 +73,7 @@ export const dqRuleTemplates: DQRuleTemplate[] = [
     description: 'Run a custom SQL check. Query should return rows that violate the rule (fail if any rows returned).',
     engine: 'custom_sql',
     ruleType: 'custom_sql',
+    dimension: 'correctness',
     columnRequired: false,
     configSchema: [{ key: 'sql', label: 'SQL', required: true, placeholder: 'SELECT id FROM table WHERE column IS NULL' }],
   },

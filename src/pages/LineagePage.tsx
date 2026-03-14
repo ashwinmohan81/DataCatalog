@@ -9,7 +9,8 @@ function getAssetById(id: string) {
   return assets.find((a) => a.id === id) ?? null;
 }
 
-function getDataProductName(dataProductId: string): string {
+function getDataProductName(dataProductId: string | undefined): string {
+  if (!dataProductId) return '—';
   for (const d of domains) {
     for (const s of d.subdomains) {
       const dp = s.dataProducts.find((p) => p.id === dataProductId);
@@ -133,7 +134,7 @@ export function LineagePage() {
                     >
                       <span className={styles.resultName}>{a.displayName}</span>
                       <span className={styles.resultMeta}>
-                        {getDataProductName(a.dataProductId)} · {a.owner}
+                        {getDataProductName(a.dataProductId ?? undefined)} · {a.owner}
                         {hasLineage && <span className={styles.lineageHasData}> · Has lineage</span>}
                       </span>
                     </button>

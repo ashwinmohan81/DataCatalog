@@ -1,14 +1,13 @@
 import { create } from 'zustand';
-import type { PersonaId, DataContract, DataProduct, GlossaryTerm, DQRule } from '../data/mock/types';
+import type { PersonaId, DataContract, DataProduct, GlossaryTerm, DQRule, ContractAmendmentRequest, ContractAmendmentProposed, Notification } from '../data/mock/types';
 import { notifications } from '../data/mock/notifications';
-
-type Notification = typeof notifications[number];
 
 interface AppState {
   persona: PersonaId;
   setPersona: (p: PersonaId) => void;
   notifications: Notification[];
   markNotificationRead: (id: string) => void;
+  addNotification: (n: Omit<Notification, 'id'> & { id?: string }) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   /** Runtime-added contract requests (consumer-created, pending or approved/rejected). */
@@ -18,6 +17,18 @@ interface AppState {
     id: string,
     status: DataContract['status'],
     opts?: { approvedByApplicationId?: string; approvedAt?: string; rejectedReason?: string }
+  ) => void;
+  /** Ensure a contract exists in store (clone from static if needed) so it can be updated. */
+  ensureContractInStore: (contract: DataContract) => void;
+  /** Direct update of a contract in store (no consumer approval). */
+  updateContract: (contractId: string, patch: Partial<Pick<DataContract, 'name' | 'schema' | 'slas' | 'dqRuleIds' | 'version' | 'versionHistory'>>) => void;
+  /** Pending amendment requests; consumer must approve before change is applied. */
+  contractAmendmentRequests: ContractAmendmentRequest[];
+  addContractAmendmentRequest: (contractId: string, proposed: ContractAmendmentProposed, contractName: string) => void;
+  setContractAmendmentStatus: (
+    amendmentId: string,
+    status: 'approved' | 'rejected',
+    opts?: { consumerRespondedBy?: string; rejectReason?: string }
   ) => void;
   /** Runtime-created data products. */
   dataProducts: DataProduct[];
@@ -82,6 +93,13 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
     })),
+  addNotification: (n) =>
+    set((s) => ({
+      notifications: [
+        ...s.notifications,
+        { ...n, id: n.id ?? `notif-${Date.now()}`, read: false },
+      ],
+    })),
   searchQuery: '',
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   contractRequests: [],
@@ -93,6 +111,90 @@ export const useAppStore = create<AppState>((set) => ({
         c.id === id ? { ...c, status, ...opts } : c
       ),
     })),
+  ensureContractInStore: (contract) =>
+    set((s) => {
+      if (s.contractRequests.some((c) => c.id === contract.id)) return s;
+      return { contractRequests: [...s.contractRequests, { ...contract }] };
+    }),
+  updateContract: (contractId, patch) =>
+    set((s) => {
+      const idx = s.contractRequests.findIndex((c) => c.id === contractId);
+      if (idx < 0) return s;
+      const c = s.contractRequests[idx];
+      const next = [...s.contractRequests];
+      const version = patch.version ?? c.version;
+      const versionHistory = patch.versionHistory ?? c.versionHistory;
+      next[idx] = { ...c, ...patch, version, versionHistory };
+      return { contractRequests: next };
+    }),
+  contractAmendmentRequests: [],
+  addContractAmendmentRequest: (contractId, proposed, contractName) =>
+    set((s) => {
+      const id = `amendment-${Date.now()}`;
+      const now = new Date().toISOString();
+      const amendment: ContractAmendmentRequest = {
+        id,
+        contractId,
+        requestedAt: now,
+        requestedBy: 'Producer',
+        proposed,
+        status: 'pending_consumer_approval',
+      };
+      const notif: Notification = {
+        id: `notif-${Date.now()}`,
+        type: 'contract_amendment',
+        title: 'Contract amendment pending your approval',
+        body: `${contractName} has a pending amendment. Please review and approve or reject.`,
+        at: now,
+        read: false,
+        linkContractId: contractId,
+      };
+      return {
+        contractAmendmentRequests: [...s.contractAmendmentRequests, amendment],
+        notifications: [...s.notifications, notif],
+      };
+    }),
+  setContractAmendmentStatus: (amendmentId, status, opts) =>
+    set((s) => {
+      const now = new Date().toISOString();
+      const next = s.contractAmendmentRequests.map((a) =>
+        a.id === amendmentId
+          ? {
+              ...a,
+              status,
+              consumerRespondedAt: now,
+              consumerRespondedBy: opts?.consumerRespondedBy,
+              rejectReason: opts?.rejectReason,
+            }
+          : a
+      );
+      const amendment = next.find((a) => a.id === amendmentId);
+      if (amendment && status === 'approved') {
+        const contracts = s.contractRequests.map((c) => {
+          if (c.id !== amendment.contractId) return c;
+          const ver = c.version + 1;
+          return {
+            ...c,
+            name: amendment.proposed.name ?? c.name,
+            schema: amendment.proposed.schema,
+            slas: amendment.proposed.slas ?? c.slas,
+            dqRuleIds: amendment.proposed.dqRuleIds ?? c.dqRuleIds,
+            version: ver,
+            versionHistory: [
+              ...(c.versionHistory ?? []),
+              {
+                version: ver,
+                at: now,
+                by: opts?.consumerRespondedBy ?? 'Consumer',
+                changeSummary: 'Amendment approved by consumer.',
+              },
+            ],
+          };
+        });
+        return { contractAmendmentRequests: next, contractRequests: contracts };
+      }
+      return { contractAmendmentRequests: next };
+    }),
   dataProducts: [],
   addDataProduct: (p) =>
     set((s) => {

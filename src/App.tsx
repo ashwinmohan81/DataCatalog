@@ -19,6 +19,7 @@ import { GlossaryTermCreatePage } from './pages/GlossaryTermCreatePage';
 import { ContractsPage } from './pages/ContractsPage';
 import { ContractConsumePage } from './pages/ContractConsumePage';
 import { ContractDetailPage } from './pages/ContractDetailPage';
+import { ContractEditPage } from './pages/ContractEditPage';
 import { ContractRequestPage } from './pages/ContractRequestPage';
 import { DataQualityPage } from './pages/DataQualityPage';
 import { WorkflowsPage } from './pages/WorkflowsPage';
@@ -56,6 +57,7 @@ function App() {
         <Route path="/contracts" element={<ContractsPage />} />
         <Route path="/contracts/request" element={<ContractRequestPage />} />
         <Route path="/contracts/consume/:contractId" element={<ContractConsumePage />} />
+        <Route path="/contracts/:contractId/edit" element={<ContractEditPage />} />
         <Route path="/contracts/:contractId" element={<ContractDetailPage />} />
         <Route path="/quality" element={<DataQualityPage />} />
         <Route path="/workflows" element={<WorkflowsPage />} />

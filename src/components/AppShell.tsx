@@ -78,6 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       markNotificationRead(n.id);
                       if (n.linkAssetId) navigate(`/asset/${n.linkAssetId}`);
                       if (n.linkTaskId) navigate(`/workflows/task/${n.linkTaskId}`);
+                      if (n.linkContractId) navigate(`/contracts/${n.linkContractId}`);
                       setShowNotify(false);
                     }}
                   >

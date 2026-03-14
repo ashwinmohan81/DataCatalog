@@ -282,6 +282,28 @@ export interface DataContract {
   versionHistory?: ContractVersionSnapshot[];
 }
 
+/** Proposed contract changes; consumer must approve when contract has consumers. */
+export interface ContractAmendmentProposed {
+  name?: string;
+  schema: ContractAttribute[];
+  slas?: ContractSLA[];
+  dqRuleIds?: string[];
+}
+
+export type ContractAmendmentStatus = 'pending_consumer_approval' | 'approved' | 'rejected';
+
+export interface ContractAmendmentRequest {
+  id: string;
+  contractId: string;
+  requestedAt: string;
+  requestedBy: string;
+  proposed: ContractAmendmentProposed;
+  status: ContractAmendmentStatus;
+  consumerRespondedAt?: string;
+  consumerRespondedBy?: string;
+  rejectReason?: string;
+}
+
 export interface ContractAttribute {
   id: string;
   name: string;
@@ -302,13 +324,14 @@ export interface Connector {
 
 export interface Notification {
   id: string;
-  type: 'change_request' | 'dq_failure' | 'contract_approval' | 'task_assigned';
+  type: 'change_request' | 'dq_failure' | 'contract_approval' | 'contract_amendment' | 'task_assigned';
   title: string;
   body: string;
   at: string;
   read: boolean;
   linkAssetId?: string;
   linkTaskId?: string;
+  linkContractId?: string;
 }
 
 export type PersonaId = 'consumer' | 'steward' | 'owner' | 'engineer' | 'regulator';

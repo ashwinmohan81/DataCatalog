@@ -14,6 +14,7 @@ const statusVariant: Record<string, 'success' | 'warning' | 'error' | 'default'>
 
 export function ContractsPage() {
   const contractRequests = useAppStore((s) => s.contractRequests);
+  const contractAmendmentRequests = useAppStore((s) => s.contractAmendmentRequests);
   const allContracts = [
     ...dataContracts,
     ...contractRequests.filter((r) => !dataContracts.some((c) => c.id === r.id)),
@@ -40,6 +41,9 @@ export function ContractsPage() {
       <ul className={styles.resultList}>
         {allContracts.map((c) => {
           const asset = assets.find((a) => a.id === c.assetId);
+          const hasPendingAmendment = contractAmendmentRequests.some(
+            (a) => a.contractId === c.id && a.status === 'pending_consumer_approval'
+          );
           return (
             <li key={c.id}>
               <Card>
@@ -47,6 +51,7 @@ export function ContractsPage() {
                   title={c.name}
                   action={
                     <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      {hasPendingAmendment && <Badge variant="warning">Amendment pending</Badge>}
                       <Badge variant={statusVariant[c.status] ?? 'default'}>{c.status.replace('_', ' ')}</Badge>
                       <Link to={`/contracts/${c.id}`}>View</Link>
                       {c.status === 'approved' && <Link to={`/contracts/consume/${c.id}`}>Consume →</Link>}

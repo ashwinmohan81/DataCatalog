@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   getContractById,
   getAssetById,
   getApplicationById,
+  applications,
   dqRules,
 } from '../data/mock';
 import type { DQRule } from '../data/mock/types';
@@ -21,14 +22,24 @@ const statusVariant: Record<string, 'success' | 'warning' | 'error' | 'info' | '
 
 export function ContractDetailPage() {
   const { contractId } = useParams();
+  const navigate = useNavigate();
   const fromStore = useAppStore((s) => s.contractRequests.find((c) => c.id === contractId));
   const fromStatic = contractId ? getContractById(contractId) : null;
   const contract = fromStore ?? fromStatic;
   const setContractStatus = useAppStore((s) => s.setContractStatus);
+  const ensureContractInStore = useAppStore((s) => s.ensureContractInStore);
+  const contractAmendmentRequests = useAppStore((s) => s.contractAmendmentRequests);
+  const setContractAmendmentStatus = useAppStore((s) => s.setContractAmendmentStatus);
+  const currentApplicationId = useAppStore((s) => s.currentApplicationId);
+  const setCurrentApplicationId = useAppStore((s) => s.setCurrentApplicationId);
   const runtimeDqRules = useAppStore((s) => s.runtimeDqRules);
   const [rejectReason, setRejectReason] = useState('');
+  const [amendmentRejectReason, setAmendmentRejectReason] = useState('');
   const [selectedDqRuleIds, setSelectedDqRuleIds] = useState<string[]>([]);
   const asset = contract ? getAssetById(contract.assetId) : null;
+  const pendingAmendment = contract ? contractAmendmentRequests.find((a) => a.contractId === contract.id && a.status === 'pending_consumer_approval') : null;
+  const isProducer = Boolean(asset?.applicationId && currentApplicationId && asset.applicationId === currentApplicationId);
+  const isConsumer = Boolean(contract?.requestedByApplicationId && currentApplicationId && contract.requestedByApplicationId === currentApplicationId);
   const requesterApp = contract?.requestedByApplicationId ? getApplicationById(contract.requestedByApplicationId) : null;
   const approverApp = contract?.approvedByApplicationId ? getApplicationById(contract.approvedByApplicationId) : null;
   const assetDqRules = asset
@@ -60,6 +71,24 @@ export function ContractDetailPage() {
         <h1 className={styles.title} style={{ margin: 0 }}>{contract.name}</h1>
         <Badge variant={statusVariant[contract.status] ?? 'default'}>{contract.status.replace('_', ' ')}</Badge>
         <Badge variant="info">v{contract.version}</Badge>
+        {isProducer && (
+          <button
+            type="button"
+            onClick={() => {
+              ensureContractInStore(contract);
+              navigate(`/contracts/${contract.id}/edit`);
+            }}
+            style={{
+              padding: 'var(--space-1) var(--space-3)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius)',
+              background: 'var(--color-surface)',
+              cursor: 'pointer',
+            }}
+          >
+            Edit
+          </button>
+        )}
       </div>
       <p className={styles.muted}>
         Asset: {asset ? <Link to={`/asset/${contract.assetId}`}>{asset.displayName}</Link> : contract.assetId}
@@ -69,6 +98,96 @@ export function ContractDetailPage() {
         {contract.approvedAt && ` · ${new Date(contract.approvedAt).toLocaleString()}`}
         {contract.rejectedReason && ` · Rejected: ${contract.rejectedReason}`}
       </p>
+
+      <div style={{ marginBottom: 'var(--space-3)' }}>
+        <label htmlFor="contract-view-as" className={styles.muted} style={{ marginRight: 'var(--space-2)' }}>View as:</label>
+        <select
+          id="contract-view-as"
+          value={currentApplicationId ?? ''}
+          onChange={(e) => setCurrentApplicationId(e.target.value || null)}
+          style={{ padding: 'var(--space-1) var(--space-2)' }}
+        >
+          <option value="">— Select application —</option>
+          {applications.map((a) => (
+            <option key={a.id} value={a.id}>{a.name} ({a.type})</option>
+          ))}
+        </select>
+        {asset?.applicationId && (
+          <span className={styles.muted} style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+            {isProducer ? 'You are the producer → Edit contract above.' : `To edit, select the producer: ${getApplicationById(asset.applicationId)?.name ?? asset.applicationId}`}
+          </span>
+        )}
+      </div>
+
+      {/* Pending amendment: consumer — Approve/Reject */}
+      {pendingAmendment && isConsumer && (
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <Card>
+            <CardHeader title="Pending amendment — your approval required" />
+            <p className={styles.muted}>
+              Producer requested changes: name {pendingAmendment.proposed.name ?? '(unchanged)'}, {pendingAmendment.proposed.schema.length} attributes, {pendingAmendment.proposed.slas?.length ?? 0} SLAs, {pendingAmendment.proposed.dqRuleIds?.length ?? 0} DQ rules.
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap', marginTop: 'var(--space-3)' }}>
+              <button
+                type="button"
+                onClick={() =>
+                  setContractAmendmentStatus(pendingAmendment.id, 'approved', {
+                    consumerRespondedBy: currentApplicationId ?? undefined,
+                  })
+                }
+                style={{
+                  padding: 'var(--space-2) var(--space-4)',
+                  background: 'var(--color-success)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius)',
+                }}
+              >
+                Approve
+              </button>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Rejection reason (optional)"
+                  value={amendmentRejectReason}
+                  onChange={(e) => setAmendmentRejectReason(e.target.value)}
+                  style={{ padding: 'var(--space-2)', minWidth: 200 }}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setContractAmendmentStatus(pendingAmendment.id, 'rejected', {
+                      consumerRespondedBy: currentApplicationId ?? undefined,
+                      rejectReason: amendmentRejectReason || 'Rejected by consumer',
+                    })
+                  }
+                  style={{
+                    padding: 'var(--space-2) var(--space-4)',
+                    background: 'var(--color-error, #c00)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius)',
+                  }}
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Pending amendment: producer — read-only */}
+      {pendingAmendment && isProducer && !isConsumer && (
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <Card>
+            <CardHeader title="Amendment pending consumer approval" />
+            <p className={styles.muted}>
+              Your proposed changes are waiting for the consumer to approve or reject.
+            </p>
+          </Card>
+        </div>
+      )}
 
       {/* SLAs */}
       <div style={{ marginBottom: 'var(--space-4)' }}><Card>

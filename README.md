@@ -2,6 +2,8 @@
 
 Unified React mockup for a data catalog and marketplace with requirements from `docs/requirements.md`. Uses mock data only (no backend).
 
+**Repository:** [github.com/ashwinmohan81/DataCatalog](https://github.com/ashwinmohan81/DataCatalog)
+
 ## Run
 
 ```bash

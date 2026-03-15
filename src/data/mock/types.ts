@@ -34,7 +34,16 @@ export interface Application {
 
 export type TaskStatus = 'open' | 'in_progress' | 'done';
 
-export type DQRuleType = 'null_check' | 'uniqueness' | 'range' | 'regex' | 'custom_sql';
+export type DQRuleType =
+  | 'null_check'
+  | 'uniqueness'
+  | 'range'
+  | 'regex'
+  | 'custom_sql'
+  | 'table_row_count_range'
+  | 'table_freshness'
+  | 'table_composite_unique'
+  | 'table_row_count_expected';
 
 /** DQ dimension for categorization and reporting (e.g. Correctness, Completeness, Timeliness). */
 export type DQDimension = 'correctness' | 'completeness' | 'timeliness' | 'uniqueness' | 'validity' | 'consistency';

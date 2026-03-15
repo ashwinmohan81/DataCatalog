@@ -37,7 +37,7 @@ export function getConsumerAppCountForDataProduct(
   return consumerIds.size;
 }
 
-/** Producer application IDs for a data product (from output port assets' applicationId). */
+/** Producer application IDs for a data product (from data assets' applicationId). */
 export function getProducerApplicationIdsForDataProduct(dataProduct: DataProduct): string[] {
   const ids = new Set<string>();
   for (const assetId of dataProduct.outputPortAssetIds) {

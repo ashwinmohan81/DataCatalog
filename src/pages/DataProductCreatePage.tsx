@@ -71,7 +71,7 @@ export function DataProductCreatePage() {
         </Link>
       </div>
       <h1 className={styles.title}>Create data product</h1>
-      <p className={styles.muted}>Define a new data product and select output port assets (can be from any domain).</p>
+      <p className={styles.muted}>Define a new data product and select data assets (can be from any domain).</p>
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 'var(--space-4)' }}>
@@ -126,7 +126,7 @@ export function DataProductCreatePage() {
 
         <div style={{ marginBottom: 'var(--space-4)' }}>
           <Card>
-            <CardHeader title="Output port assets" />
+            <CardHeader title="Data assets" />
             <p className={styles.muted}>Select assets to expose in this product. Assets can be from any domain.</p>
             <div className={styles.tableWrap} style={{ marginTop: 'var(--space-3)' }}>
               <table className={styles.table}>

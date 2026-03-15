@@ -2,7 +2,7 @@
  * Data Catalog — canonical data model
  *
  * Supports: Application/zone inventory, medallion view, data contracts (SLAs, schema, DQ, versioning),
- * data products & output ports, glossary terms & column–term linking, fuzzy term recommendations,
+ * data products & data assets, glossary terms & column–term linking, fuzzy term recommendations,
  * tag management (custom tags, column tags).
  *
  * Two layers:

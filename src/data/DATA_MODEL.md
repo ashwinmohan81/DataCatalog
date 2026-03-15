@@ -10,7 +10,7 @@ Single source of truth for entities and relationships. Implementation: `src/data
 |--------|---------|---------|
 | **Domain** | Business domain (e.g. Sales, Finance) | id |
 | **Subdomain** | Subdivision; contains DataProducts | id, domainId |
-| **DataProduct** | Data product; has output ports (assets) | id, subdomainId, domainId, outputPortAssetIds[] |
+| **DataProduct** | Data product; has data assets | id, subdomainId, domainId, outputPortAssetIds[] |
 | **DataAsset** | Table/file/API/etc. | id, applicationId, domainId, subdomainId, dataProductId, platform, zone |
 | **Column** | Attribute of an asset | id, glossaryTermIds[], tags[] |
 | **Application** | Producer or consumer app | id, type, connectorIds[], consumedDataProductIds[] |

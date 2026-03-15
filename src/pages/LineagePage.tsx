@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { assets, lineageGraphs, domains } from '../data/mock';
+import { assets, lineageGraphs, domains, applications } from '../data/mock';
 import { Card, CardHeader } from '../components/Card';
 import { LineageFlowCanvas } from '../components/LineageFlowCanvas';
 import styles from './Page.module.css';
@@ -20,6 +20,28 @@ function getDataProductName(dataProductId: string | undefined): string {
   return dataProductId;
 }
 
+function filterAssetsByScope(
+  list: typeof assets,
+  params: { domainId?: string; subdomainId?: string; dataProductId?: string; owner?: string; applicationId?: string; search?: string }
+) {
+  let out = list;
+  if (params.domainId) out = out.filter((a) => a.domainId === params.domainId);
+  if (params.subdomainId) out = out.filter((a) => a.subdomainId === params.subdomainId);
+  if (params.dataProductId) out = out.filter((a) => a.dataProductId === params.dataProductId);
+  if (params.owner) out = out.filter((a) => a.owner === params.owner);
+  if (params.applicationId) out = out.filter((a) => a.applicationId === params.applicationId);
+  if (params.search?.trim()) {
+    const q = params.search.trim().toLowerCase();
+    out = out.filter(
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        a.displayName.toLowerCase().includes(q) ||
+        a.tags.some((t) => t.toLowerCase().includes(q))
+    );
+  }
+  return out;
+}
+
 const LINEAGE_COLUMN_TABS_MAX = 8;
 
 export function LineagePage() {
@@ -27,6 +49,11 @@ export function LineagePage() {
   const assetId = searchParams.get('asset') ?? '';
   const selectedColumnId = searchParams.get('column') ?? '';
   const [searchQuery, setSearchQuery] = useState('');
+  const [domainId, setDomainId] = useState('');
+  const [subdomainId, setSubdomainId] = useState('');
+  const [dataProductId, setDataProductId] = useState('');
+  const [owner, setOwner] = useState('');
+  const [applicationId, setApplicationId] = useState('');
   const [lineageViewMode, setLineageViewMode] = useState<'flow' | 'columnBased'>('flow');
 
   const asset = assetId ? getAssetById(assetId) : null;
@@ -35,16 +62,36 @@ export function LineagePage() {
     [assetId]
   );
 
-  const filteredAssets = useMemo(() => {
-    if (!searchQuery.trim()) return assets;
-    const q = searchQuery.trim().toLowerCase();
-    return assets.filter(
-      (a) =>
-        a.name.toLowerCase().includes(q) ||
-        a.displayName.toLowerCase().includes(q) ||
-        a.tags.some((t) => t.toLowerCase().includes(q))
-    );
-  }, [searchQuery]);
+  const filteredAssets = useMemo(
+    () =>
+      filterAssetsByScope(assets, {
+        domainId: domainId || undefined,
+        subdomainId: subdomainId || undefined,
+        dataProductId: dataProductId || undefined,
+        owner: owner || undefined,
+        applicationId: applicationId || undefined,
+        search: searchQuery || undefined,
+      }),
+    [domainId, subdomainId, dataProductId, owner, applicationId, searchQuery]
+  );
+
+  const selectedDomain = domainId ? domains.find((d) => d.id === domainId) : null;
+  const subdomains = selectedDomain ? selectedDomain.subdomains : [];
+  const dataProducts = useMemo(() => {
+    if (!subdomainId) return [];
+    const sub = subdomains.find((s) => s.id === subdomainId);
+    return sub ? sub.dataProducts : [];
+  }, [subdomainId, subdomains]);
+  const ownersList = useMemo(() => Array.from(new Set(assets.map((a) => a.owner))).sort(), []);
+  const hasScopeFilters = domainId || subdomainId || dataProductId || owner || applicationId || searchQuery.trim();
+  const clearScopeFilters = () => {
+    setDomainId('');
+    setSubdomainId('');
+    setDataProductId('');
+    setOwner('');
+    setApplicationId('');
+    setSearchQuery('');
+  };
 
   const assetsWithLineage = useMemo(
     () => assets.filter((a) => lineageGraphs.some((g) => g.assetId === a.id)),
@@ -101,14 +148,84 @@ export function LineagePage() {
       {/* Asset finder */}
       <Card className={styles.lineageFinderCard}>
         <CardHeader title="Find data asset" />
-        <div className={styles.lineageFinderRow}>
+        <div className={styles.insightsFilterRow} style={{ marginBottom: 'var(--space-3)' }}>
           <input
             type="search"
-            placeholder="Search assets by name or tag..."
+            placeholder="Search by data asset..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.insightsFilterInput}
+            aria-label="Search data asset"
           />
+          <select
+            value={domainId}
+            onChange={(e) => { setDomainId(e.target.value); setSubdomainId(''); setDataProductId(''); }}
+            className={styles.insightsFilterSelect}
+            aria-label="Domain"
+          >
+            <option value="">All domains</option>
+            {domains.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+          <select
+            value={subdomainId}
+            onChange={(e) => { setSubdomainId(e.target.value); setDataProductId(''); }}
+            className={styles.insightsFilterSelect}
+            aria-label="Subdomain"
+            disabled={!domainId}
+          >
+            <option value="">All subdomains</option>
+            {subdomains.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          <select
+            value={dataProductId}
+            onChange={(e) => setDataProductId(e.target.value)}
+            className={styles.insightsFilterSelect}
+            aria-label="Data product"
+            disabled={!subdomainId}
+          >
+            <option value="">All products</option>
+            {dataProducts.map((dp) => (
+              <option key={dp.id} value={dp.id}>{dp.name}</option>
+            ))}
+          </select>
+          <select
+            value={owner}
+            onChange={(e) => setOwner(e.target.value)}
+            className={styles.insightsFilterSelect}
+            aria-label="Owner"
+          >
+            <option value="">All owners</option>
+            {ownersList.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+          <select
+            value={applicationId}
+            onChange={(e) => setApplicationId(e.target.value)}
+            className={styles.insightsFilterSelect}
+            aria-label="Application"
+          >
+            <option value="">All applications</option>
+            {applications.map((app) => (
+              <option key={app.id} value={app.id}>{app.name}</option>
+            ))}
+          </select>
+          {hasScopeFilters && (
+            <button type="button" onClick={clearScopeFilters} className={styles.insightsFilterClear}>
+              Clear filters
+            </button>
+          )}
+        </div>
+        {hasScopeFilters && (
+          <p className={styles.muted} style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-sm)' }}>
+            Showing {filteredAssets.length} asset(s)
+          </p>
+        )}
+        <div className={styles.lineageFinderRow}>
           {asset && (
             <span className={styles.lineageSelectedAsset}>
               Selected: <strong>{asset.displayName}</strong>

@@ -109,7 +109,7 @@ export function SearchPage() {
                       <span className={styles.resultMeta}>{a.name} · {a.type}{a.platform ? ` · ${a.platform}` : ''}{a.zone ? ` · ${a.zone}` : ''}</span>
                       <span className={styles.badges}>
                         {a.certified && <Badge variant="success">Certified</Badge>}
-                        {a.isOutputPort && <Badge variant="info">Output port</Badge>}
+                        {a.isOutputPort && <Badge variant="info">Output</Badge>}
                         {a.tags.slice(0, 2).map((t) => (
                           <Badge key={t}>{t}</Badge>
                         ))}

@@ -56,6 +56,31 @@ export const dqRules: DQRule[] = [
     lastRunAt: '2025-03-12T03:30:00Z',
     lastRunPassed: false,
   },
+  // Table-level rules
+  {
+    id: 'rule-table-1',
+    name: 'Exposure row count in range',
+    type: 'table_row_count_range',
+    dimension: 'completeness',
+    assetId: 'asset-exposure',
+    config: { minRows: 100, maxRows: 500000 },
+    templateId: 'table-row-count-range',
+    engine: 'great_expectations',
+    lastRunAt: '2025-03-14T05:30:00Z',
+    lastRunPassed: true,
+  },
+  {
+    id: 'rule-table-2',
+    name: 'Exposure table freshness',
+    type: 'table_freshness',
+    dimension: 'timeliness',
+    assetId: 'asset-exposure',
+    config: { timestampColumn: 'last_updated_at', maxAgeHours: '24' },
+    templateId: 'table-freshness',
+    engine: 'great_expectations',
+    lastRunAt: '2025-03-14T05:30:00Z',
+    lastRunPassed: true,
+  },
 ];
 
 export const dqRuns: DQRun[] = [
@@ -64,4 +89,6 @@ export const dqRuns: DQRun[] = [
   { id: 'run-3', ruleId: 'rule-3', assetId: 'asset-customer-attr', runAt: '2025-03-14T04:30:00Z', passed: true },
   { id: 'run-4', ruleId: 'rule-4', assetId: 'asset-exposure', runAt: '2025-03-14T05:30:00Z', passed: true },
   { id: 'run-5', ruleId: 'rule-5', assetId: 'asset-transactions', runAt: '2025-03-12T03:30:00Z', passed: false, failedCount: 200, sampleFailures: ['TXN501', 'TXN502'] },
+  { id: 'run-6', ruleId: 'rule-table-1', assetId: 'asset-exposure', runAt: '2025-03-14T05:30:00Z', passed: true },
+  { id: 'run-7', ruleId: 'rule-table-2', assetId: 'asset-exposure', runAt: '2025-03-14T05:30:00Z', passed: true },
 ];

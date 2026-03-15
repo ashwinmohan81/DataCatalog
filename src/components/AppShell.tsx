@@ -14,7 +14,6 @@ const NAV = [
   { path: '/glossary', label: 'Glossary' },
   { path: '/tags', label: 'Tags' },
   { path: '/quality', label: 'Quality' },
-  { path: '/compliance', label: 'Compliance' },
   { path: '/settings', label: 'Settings' },
 ];
 

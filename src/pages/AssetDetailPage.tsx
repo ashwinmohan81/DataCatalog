@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   getAssetById,
   getContractByAssetId,
@@ -20,7 +20,7 @@ import { Badge } from '../components/Badge';
 import { Tabs } from '../components/Tabs';
 import { LineageFlowCanvas } from '../components/LineageFlowCanvas';
 import { getRecommendedTerms } from '../utils/glossaryFuzzyMatch';
-import { getRuleDimension, DQ_DIMENSION_IDS, DQ_DIMENSION_LABELS } from '../utils/dqDimensions';
+import { getRuleDimension, DQ_DIMENSION_IDS, DQ_DIMENSION_LABELS, isTableLevelRule } from '../utils/dqDimensions';
 import styles from './Page.module.css';
 
 const LINEAGE_COLUMN_TABS_MAX = 8;
@@ -28,11 +28,13 @@ type TabId = 'overview' | 'schema' | 'automap' | 'profile' | 'lineage' | 'dq' | 
 
 export function AssetDetailPage() {
   const { assetId } = useParams();
+  const navigate = useNavigate();
   const asset = assetId ? getAssetById(assetId) : null;
   const [tab, setTab] = useState<TabId>('overview');
   const [selectedLineageColumnId, setSelectedLineageColumnId] = useState<string>('');
   const [lineageViewMode, setLineageViewMode] = useState<'flow' | 'columnBased'>('flow');
   const [addRuleMode, setAddRuleMode] = useState<'prebuilt' | 'custom_sql'>('prebuilt');
+  const [addRuleLevel, setAddRuleLevel] = useState<'column' | 'table'>('column');
   const [addRuleTemplateId, setAddRuleTemplateId] = useState('');
   const [addRuleColumnId, setAddRuleColumnId] = useState('');
   const [addRuleConfig, setAddRuleConfig] = useState<Record<string, string>>({});
@@ -53,6 +55,7 @@ export function AssetDetailPage() {
 
   const contractFromStore = useAppStore((s) => s.contractRequests.find((c) => c.assetId === asset.id));
   const contract = getContractByAssetId(asset.id) ?? contractFromStore ?? null;
+  const addContractRequest = useAppStore((s) => s.addContractRequest);
   const setContractStatus = useAppStore((s) => s.setContractStatus);
   const [contractRejectReason, setContractRejectReason] = useState('');
   const runtimeProducts = useAppStore((s) => s.dataProducts);
@@ -121,7 +124,7 @@ export function AssetDetailPage() {
     { id: 'lineage', label: 'Lineage' },
     { id: 'dq', label: 'Data quality' },
     { id: 'versions', label: 'Versions' },
-    ...(contract && productInfo ? [{ id: 'contract' as TabId, label: 'Contract' }] : []),
+    ...(productInfo ? [{ id: 'contract' as TabId, label: 'Contract' }] : []),
     { id: 'activity', label: 'Activity' },
   ];
 
@@ -610,6 +613,7 @@ export function AssetDetailPage() {
                     <thead>
                       <tr>
                         <th>Rule</th>
+                        <th>Level</th>
                         <th>Dimension</th>
                         <th>Type</th>
                         <th>Engine</th>
@@ -622,6 +626,7 @@ export function AssetDetailPage() {
                       {assetDqRules.map((r) => (
                         <tr key={r.id}>
                           <td>{r.name}</td>
+                          <td>{isTableLevelRule(r) ? <Badge variant="default">Table</Badge> : asset.columns.find((c) => c.id === r.columnId)?.name ?? '—'}</td>
                           <td><Badge variant="default">{DQ_DIMENSION_LABELS[getRuleDimension(r, (id) => dqRuleTemplates.find((t) => t.id === id))]}</Badge></td>
                           <td>{r.type}</td>
                           <td>{r.engine === 'great_expectations' ? <Badge variant="info">Great Expectations</Badge> : r.engine === 'custom_sql' ? <Badge variant="default">Custom SQL</Badge> : '—'}</td>
@@ -643,10 +648,10 @@ export function AssetDetailPage() {
             </Card>
             <Card>
               <CardHeader title="Add rule" />
-              <p className={styles.muted}>Enable a prebuilt rule (e.g. Great Expectations) or add a custom SQL check.</p>
+              <p className={styles.muted}>Enable a prebuilt rule (e.g. Great Expectations) or add a custom SQL check. Choose column-level or table-level.</p>
               <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-3)' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                  <input type="radio" name="addRuleMode" checked={addRuleMode === 'prebuilt'} onChange={() => setAddRuleMode('prebuilt')} />
+                  <input type="radio" name="addRuleMode" checked={addRuleMode === 'prebuilt'} onChange={() => { setAddRuleMode('prebuilt'); setAddRuleTemplateId(''); setAddRuleConfig({}); setAddRuleColumnId(''); }} />
                   Prebuilt (Great Expectations)
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
@@ -656,6 +661,19 @@ export function AssetDetailPage() {
               </div>
               {addRuleMode === 'prebuilt' && (
                 <>
+                  <div style={{ marginBottom: 'var(--space-3)' }}>
+                    <span className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Level</span>
+                    <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                        <input type="radio" name="addRuleLevel" checked={addRuleLevel === 'column'} onChange={() => { setAddRuleLevel('column'); setAddRuleTemplateId(''); setAddRuleConfig({}); setAddRuleColumnId(''); }} />
+                        Column level
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                        <input type="radio" name="addRuleLevel" checked={addRuleLevel === 'table'} onChange={() => { setAddRuleLevel('table'); setAddRuleTemplateId(''); setAddRuleConfig({}); setAddRuleColumnId(''); }} />
+                        Table level
+                      </label>
+                    </div>
+                  </div>
                   <div style={{ marginBottom: 'var(--space-2)' }}>
                     <label className={styles.muted} style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Template</label>
                     <select
@@ -670,9 +688,15 @@ export function AssetDetailPage() {
                       style={{ padding: 'var(--space-2)', minWidth: 280 }}
                     >
                       <option value="">Select a rule…</option>
-                      {dqRuleTemplates.filter((t) => t.engine === 'great_expectations' || t.id === 'custom_sql').map((t) => (
-                        <option key={t.id} value={t.id}>{t.name} — {t.expectationType}</option>
-                      ))}
+                      {dqRuleTemplates
+                        .filter((t) => {
+                          if (t.engine !== 'great_expectations' && t.id !== 'custom_sql') return false;
+                          if (addRuleLevel === 'column') return t.columnRequired === true || t.id === 'custom_sql';
+                          return t.columnRequired === false;
+                        })
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>{t.name} — {t.expectationType}</option>
+                        ))}
                     </select>
                   </div>
                   {addRuleTemplateId && (() => {
@@ -858,6 +882,50 @@ export function AssetDetailPage() {
                 ))}
               </ul>
             )}
+          </Card>
+        )}
+
+        {tab === 'contract' && productInfo && !contract && (
+          <Card>
+            <CardHeader title="Contract" />
+            <p className={styles.muted}>This asset does not have a contract yet. Create one to define SLAs, schema, and DQ rules for consumers.</p>
+            <button
+              type="button"
+              onClick={() => {
+                const id = `contract-new-${asset.id}-${Date.now()}`;
+                const now = new Date().toISOString();
+                const schema = asset.columns.map((c) => ({
+                  id: `attr-${c.id}`,
+                  name: c.name,
+                  type: c.type,
+                  description: c.description,
+                  required: true,
+                }));
+                addContractRequest({
+                  id,
+                  name: `${asset.displayName} Contract`,
+                  assetId: asset.id,
+                  version: 1,
+                  createdAt: now,
+                  createdBy: 'Producer',
+                  status: 'draft',
+                  schema,
+                  versionHistory: [{ version: 1, at: now, by: 'Producer', changeSummary: 'Initial draft' }],
+                });
+                navigate(`/contracts/${id}/edit`);
+              }}
+              style={{
+                marginTop: 'var(--space-3)',
+                padding: 'var(--space-2) var(--space-4)',
+                background: 'var(--color-primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius)',
+                cursor: 'pointer',
+              }}
+            >
+              Create contract
+            </button>
           </Card>
         )}
 

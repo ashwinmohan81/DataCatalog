@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { GlossaryTerm } from '../data/mock/types';
-import { getGlossaryById } from '../data/mock';
+import { glossaries } from '../data/mock';
 import { useAppStore } from '../store/useAppStore';
 import { Card, CardHeader } from '../components/Card';
 import styles from './Page.module.css';
@@ -9,7 +9,9 @@ import styles from './Page.module.css';
 export function GlossaryTermCreatePage() {
   const { glossaryId } = useParams();
   const navigate = useNavigate();
-  const glossary = glossaryId ? getGlossaryById(glossaryId) : null;
+  const runtimeGlossaries = useAppStore((s) => s.runtimeGlossaries);
+  const allGlossaries = [...glossaries, ...runtimeGlossaries];
+  const glossary = glossaryId ? allGlossaries.find((g) => g.id === glossaryId) ?? null : null;
   const addGlossaryTerm = useAppStore((s) => s.addGlossaryTerm);
   const [name, setName] = useState('');
   const [definition, setDefinition] = useState('');

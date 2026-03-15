@@ -10,7 +10,7 @@ Render this in any [Mermaid](https://mermaid.js.org/) viewer (e.g. GitHub, VS Co
 erDiagram
   Domain ||--o{ Subdomain : "contains"
   Subdomain ||--o{ DataProduct : "contains"
-  DataProduct ||--o{ DataAsset : "output ports"
+  DataProduct ||--o{ DataAsset : "data assets"
   DataAsset ||--o{ Column : "has"
   DataAsset }o--|| Application : "owned by (producer)"
   DataAsset }o--o| Connector : "scanned by"

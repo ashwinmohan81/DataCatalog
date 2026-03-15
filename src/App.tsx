@@ -13,6 +13,7 @@ import { AssetDetailPage } from './pages/AssetDetailPage';
 import { DataProductDetailPage } from './pages/DataProductDetailPage';
 import { DataProductCreatePage } from './pages/DataProductCreatePage';
 import { GlossaryPage } from './pages/GlossaryPage';
+import { GlossaryCreatePage } from './pages/GlossaryCreatePage';
 import { GlossaryDetailPage } from './pages/GlossaryDetailPage';
 import { GlossaryTermPage } from './pages/GlossaryTermPage';
 import { GlossaryTermCreatePage } from './pages/GlossaryTermCreatePage';
@@ -50,6 +51,7 @@ function App() {
         <Route path="/data-product/new" element={<DataProductCreatePage />} />
         <Route path="/data-product/:dataProductId" element={<DataProductDetailPage />} />
         <Route path="/glossary" element={<GlossaryPage />} />
+        <Route path="/glossary/new" element={<GlossaryCreatePage />} />
         <Route path="/tags" element={<TagsPage />} />
         <Route path="/glossary/glossary/:glossaryId" element={<GlossaryDetailPage />} />
         <Route path="/glossary/glossary/:glossaryId/term/new" element={<GlossaryTermCreatePage />} />

@@ -34,7 +34,7 @@ const getTemplate = (id: string) => dqRuleTemplates.find((t) => t.id === id);
 
 /**
  * Compute DQ summary for a data product: asset count, rule count, pass rate, RAG status, and per-dimension breakdown.
- * Rules are those (static + runtime) whose assetId is in the product's output port assets.
+ * Rules are those (static + runtime) whose assetId is in the product's data assets.
  * RAG: green >= 90%, amber >= 60%, red < 60%, grey = no rules.
  */
 export function getDataProductDqSummary(

@@ -19,7 +19,7 @@ Open http://localhost:5173
 - **Catalog** – Browse by domain; asset list with owner, data product, last scan, tags.
 - **Marketplace** – Featured data products, recently used, consume contracts.
 - **Asset detail** – Tabs: Overview, Schema, Profile, Lineage, Glossary, DQ, Versions, Contract (if any), Activity.
-- **Data product detail** – Output ports, contract link.
+- **Data product detail** – Data assets, contract link.
 - **Glossary** – Term list and term detail with linked columns.
 - **Data contracts** – List and consume flow (attribute picker, request access).
 - **Data quality** – Rules, run history, recent failures.

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { glossaryTerms as staticTerms, assets, getGlossaryById } from '../data/mock';
+import { glossaryTerms as staticTerms, assets, glossaries } from '../data/mock';
 import { useAppStore } from '../store/useAppStore';
 import { Card, CardHeader } from '../components/Card';
 import styles from './Page.module.css';
@@ -8,11 +8,13 @@ import styles from './Page.module.css';
 export function GlossaryTermPage() {
   const { termId } = useParams();
   const runtimeTerms = useAppStore((s) => s.glossaryTerms);
+  const runtimeGlossaries = useAppStore((s) => s.runtimeGlossaries);
   const columnTermLinks = useAppStore((s) => s.columnTermLinks);
   const addColumnTermLink = useAppStore((s) => s.addColumnTermLink);
   const removeColumnTermLink = useAppStore((s) => s.removeColumnTermLink);
+  const allGlossaries = [...glossaries, ...runtimeGlossaries];
   const term = termId ? (runtimeTerms.find((t) => t.id === termId) ?? staticTerms.find((t) => t.id === termId)) : null;
-  const glossary = term ? getGlossaryById(term.glossaryId) : null;
+  const glossary = term ? allGlossaries.find((g) => g.id === term.glossaryId) ?? null : null;
 
   const linkedFromTerm = term?.linkedColumnIds ?? [];
   const linkedFromStore = termId ? columnTermLinks.filter((l) => l.termId === termId) : [];

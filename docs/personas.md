@@ -30,7 +30,7 @@ Used by the Designer Agent to implement persona switcher and default home/naviga
 - **Default home:** My assets & tasks (change requests assigned to me).
 - **Default navigation emphasis:** My assets, Workflows (tasks), Data products I own, Contracts.
 - **Default filters:** “Owned by me”; tasks “Assigned to me.”
-- **Typical actions:** View/complete change request tasks, publish/update data contract, manage output ports.
+- **Typical actions:** View/complete change request tasks, publish/update data contract, manage data assets.
 
 ---
 

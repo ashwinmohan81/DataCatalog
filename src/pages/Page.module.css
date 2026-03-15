@@ -113,6 +113,212 @@
   }
 }
 
+.glossaryLayout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.glossarySidebar {
+  position: sticky;
+  top: var(--space-4);
+  border-right: 1px solid var(--color-border);
+  padding-right: var(--space-4);
+}
+
+.glossaryMain {
+  min-width: 0;
+}
+
+.glossarySidebarTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  margin: 0 0 var(--space-2);
+  padding: 0 var(--space-3);
+}
+
+.glossaryAddLink {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.glossaryAddLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .glossaryLayout {
+    grid-template-columns: 1fr;
+  }
+  .glossarySidebar {
+    position: static;
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-4);
+  }
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.pagination button {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationInfo {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.inlineEditTrigger {
+  display: block;
+  width: 100%;
+  min-width: 120px;
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-bg-elevated);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.inlineEditTrigger:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-text-muted);
+}
+.inlineEditTrigger:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.inlineEditInput {
+  width: 100%;
+  min-width: 80px;
+  padding: var(--space-1) var(--space-2);
+  font-size: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+}
+
+.inlineEditInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.inlineEditInput:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+}
+
+.inlineEditSelect {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  min-width: 120px;
+}
+
+.inlineEditSelect:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+}
+
+.chipList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chipListChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  font-size: var(--text-xs);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.chipRemove {
+  padding: 0;
+  margin: 0;
+  margin-left: 2px;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.chipRemove:hover {
+  color: var(--color-text);
+  background: var(--color-bg-hover);
+}
+
+.chipListAdd {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.chipListAdd .inlineEditInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.chipAddBtn {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chipAddBtn:hover {
+  opacity: 0.9;
+}
+
 .insightsKpiGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));

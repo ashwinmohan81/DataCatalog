@@ -16,6 +16,10 @@ const RULE_TYPE_TO_DIMENSION: Record<DQRuleType, DQDimension> = {
   range: 'validity',
   regex: 'validity',
   custom_sql: 'correctness',
+  table_row_count_range: 'completeness',
+  table_freshness: 'timeliness',
+  table_composite_unique: 'uniqueness',
+  table_row_count_expected: 'consistency',
 };
 
 /** All dimension ids in display order. */
@@ -41,4 +45,9 @@ export function getRuleDimension(
     if (t?.dimension) return t.dimension;
   }
   return RULE_TYPE_TO_DIMENSION[rule.type];
+}
+
+/** True if the rule is table/entity-level (no column). */
+export function isTableLevelRule(rule: DQRule): boolean {
+  return rule.columnId == null || rule.columnId === '';
 }

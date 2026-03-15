@@ -163,7 +163,7 @@ export function DataProductDetailPage() {
       })()}
 
       <Card>
-        <CardHeader title="Output ports" />
+        <CardHeader title="Data assets" />
         <p className={styles.muted}>Published assets for consumption.</p>
         <ul className={styles.resultList}>
           {outputAssets.map((a) => (

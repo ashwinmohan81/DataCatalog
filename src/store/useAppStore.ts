@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PersonaId, DataContract, DataProduct, GlossaryTerm, DQRule, ContractAmendmentRequest, ContractAmendmentProposed, Notification } from '../data/mock/types';
+import type { PersonaId, DataContract, DataProduct, Glossary, GlossaryTerm, DQRule, ContractAmendmentRequest, ContractAmendmentProposed, Notification } from '../data/mock/types';
 import { notifications } from '../data/mock/notifications';
 
 interface AppState {
@@ -37,10 +37,17 @@ interface AppState {
   /** Asset ID -> data product ID (for assets in runtime-created products). */
   assetDataProductOverrides: Record<string, string>;
   setAssetDataProductOverride: (assetId: string, dataProductId: string | null) => void;
+  /** Runtime-created glossaries (groupings). */
+  runtimeGlossaries: Glossary[];
+  addGlossary: (g: Glossary) => void;
+  updateGlossary: (id: string, patch: Partial<Glossary>) => void;
   /** Runtime-created glossary terms. */
   glossaryTerms: GlossaryTerm[];
   addGlossaryTerm: (t: GlossaryTerm) => void;
   updateGlossaryTerm: (id: string, patch: Partial<GlossaryTerm>) => void;
+  /** Overrides for tags/synonyms/definition on any term (including static). Key = termId. */
+  glossaryTermOverrides: Record<string, Partial<Pick<GlossaryTerm, 'tags' | 'synonyms' | 'definition'>>>;
+  setGlossaryTermOverride: (termId: string, patch: Partial<Pick<GlossaryTerm, 'tags' | 'synonyms' | 'definition'>>) => void;
   /** Column-to-term links (assetId, columnId, termId). Enables linking any column to any term. */
   columnTermLinks: Array<{ assetId: string; columnId: string; termId: string }>;
   addColumnTermLink: (assetId: string, columnId: string, termId: string) => void;
@@ -222,12 +229,28 @@ export const useAppStore = create<AppState>((set) => ({
         ? (() => { const o = { ...s.assetDataProductOverrides }; delete o[assetId]; return o; })()
         : { ...s.assetDataProductOverrides, [assetId]: dataProductId },
     })),
+  runtimeGlossaries: [],
+  addGlossary: (g) => set((s) => ({ runtimeGlossaries: [...s.runtimeGlossaries, g] })),
+  updateGlossary: (id, patch) =>
+    set((s) => ({
+      runtimeGlossaries: s.runtimeGlossaries.map((g) => (g.id === id ? { ...g, ...patch } : g)),
+    })),
   glossaryTerms: [],
   addGlossaryTerm: (t) => set((s) => ({ glossaryTerms: [...s.glossaryTerms, t] })),
   updateGlossaryTerm: (id, patch) =>
     set((s) => ({
       glossaryTerms: s.glossaryTerms.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     })),
+  glossaryTermOverrides: {},
+  setGlossaryTermOverride: (termId, patch) =>
+    set((s) => {
+      const next = { ...s.glossaryTermOverrides };
+      const existing = next[termId] ?? {};
+      const merged = { ...existing, ...patch };
+      if (Object.keys(merged).length === 0) delete next[termId];
+      else next[termId] = merged;
+      return { glossaryTermOverrides: next };
+    }),
   columnTermLinks: [],
   addColumnTermLink: (assetId, columnId, termId) =>
     set((s) => {
@@ -240,7 +263,18 @@ export const useAppStore = create<AppState>((set) => ({
         (l) => !(l.assetId === assetId && l.columnId === columnId && l.termId === termId)
       ),
     })),
-  customTags: [],
+  customTags: [
+    'PII',
+    'Sensitivity',
+    'Confidential',
+    'Internal',
+    'Public',
+    'BCBS 239',
+    'risk',
+    'customer',
+    'finance',
+    'reference',
+  ],
   addCustomTag: (name, categoryId) =>
     set((s) => {
       const n = name.trim();
@@ -256,8 +290,23 @@ export const useAppStore = create<AppState>((set) => ({
       delete nextByTag[name];
       return { customTags: s.customTags.filter((t) => t !== name), tagCategoryByTagName: nextByTag };
     }),
-  tagCategories: [],
-  tagCategoryByTagName: {},
+  tagCategories: [
+    { id: 'tag-cat-sensitivity', name: 'Sensitivity' },
+    { id: 'tag-cat-domain', name: 'Domain' },
+    { id: 'tag-cat-regulation', name: 'Regulation' },
+  ],
+  tagCategoryByTagName: {
+    PII: 'tag-cat-sensitivity',
+    Sensitivity: 'tag-cat-sensitivity',
+    Confidential: 'tag-cat-sensitivity',
+    Internal: 'tag-cat-sensitivity',
+    Public: 'tag-cat-sensitivity',
+    risk: 'tag-cat-domain',
+    customer: 'tag-cat-domain',
+    finance: 'tag-cat-domain',
+    reference: 'tag-cat-domain',
+    'BCBS 239': 'tag-cat-regulation',
+  },
   addTagCategory: (name) =>
     set((s) => {
       const n = name.trim();

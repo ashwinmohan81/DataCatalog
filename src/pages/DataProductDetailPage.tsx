@@ -165,27 +165,37 @@ export function DataProductDetailPage() {
       <Card>
         <CardHeader title="Data assets" />
         <p className={styles.muted}>Published assets for consumption.</p>
-        <ul className={styles.resultList}>
+        {outputAssets.length === 0 ? (
+          <p className={styles.muted} style={{ marginTop: 'var(--space-3)' }}>No data assets in this product yet.</p>
+        ) : (
+        <div className={styles.grid2} style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', marginTop: 'var(--space-3)' }}>
           {outputAssets.map((a) => (
-            <li key={a.id}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-3)' }}>
-                <Link to={`/asset/${a.id}`} className={styles.resultLink} style={{ flex: 1 }}>
-                  <span className={styles.resultName}>{a.displayName}</span>
-                  <span className={styles.resultMeta}>{a.type} · {a.platform ?? '—'} · {a.owner}</span>
-                </Link>
-                {isRuntimeProduct && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAsset(a.id)}
-                    style={{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-sm)', marginLeft: 'var(--space-2)' }}
-                  >
+            <Card key={a.id} style={{ margin: 0 }}>
+              <CardHeader
+                title={<Link to={`/asset/${a.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{a.displayName}</Link>}
+                action={isRuntimeProduct ? (
+                  <button type="button" onClick={() => handleRemoveAsset(a.id)} style={{ padding: 'var(--space-1) var(--space-2)', fontSize: 'var(--text-sm)' }}>
                     Remove
                   </button>
-                )}
+                ) : null}
+              />
+              <p className={styles.muted} style={{ marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+                {a.type} · {a.platform ?? '—'} · {a.owner}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
+                {a.certified && <Badge variant="success">Certified</Badge>}
+                {a.isOutputPort && <Badge variant="info">Output</Badge>}
+                {a.tags.slice(0, 3).map((t) => (
+                  <Badge key={t}>{t}</Badge>
+                ))}
               </div>
-            </li>
+              <Link to={`/asset/${a.id}`} style={{ fontSize: 'var(--text-sm)' }}>
+                View asset →
+              </Link>
+            </Card>
           ))}
-        </ul>
+        </div>
+        )}
         {isRuntimeProduct && assetsNotInProduct.length > 0 && (
           <div style={{ marginTop: 'var(--space-4)', padding: '0 var(--space-4) var(--space-4)' }}>
             <h3 className={styles.sectionTitle}>Add asset</h3>

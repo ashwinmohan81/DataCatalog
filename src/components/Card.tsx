@@ -10,7 +10,7 @@ export function Card({
   return <div className={`${styles.card} ${className}`}>{children}</div>;
 }
 
-export function CardHeader({ title, action }: { title: string; action?: React.ReactNode }) {
+export function CardHeader({ title, action }: { title: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className={styles.cardHeader}>
       <h2 className={styles.cardTitle}>{title}</h2>

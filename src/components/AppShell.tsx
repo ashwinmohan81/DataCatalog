@@ -9,6 +9,7 @@ const NAV = [
   { path: '/catalog', label: 'Catalog' },
   { path: '/marketplace', label: 'Marketplace' },
   { path: '/inventory', label: 'Inventory' },
+  { path: '/playground', label: 'Playground' },
   { path: '/lineage', label: 'Lineage' },
   { path: '/insights', label: 'Insights' },
   { path: '/glossary', label: 'Glossary' },

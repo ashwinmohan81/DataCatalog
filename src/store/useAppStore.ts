@@ -66,6 +66,11 @@ interface AppState {
   /** Column tag overrides: key = assetId:columnId, value = full tag list for that column. */
   columnTagOverrides: Record<string, string[]>;
   setColumnTags: (assetId: string, columnId: string, tags: string[]) => void;
+  /** Consumer playground: asset IDs in the sandbox for ER discovery. */
+  playgroundAssetIds: string[];
+  addToPlayground: (assetId: string) => void;
+  removeFromPlayground: (assetId: string) => void;
+  clearPlayground: () => void;
   /** Runtime-added DQ rules (prebuilt enabled or custom SQL). */
   runtimeDqRules: DQRule[];
   addDqRule: (r: DQRule) => void;
@@ -344,6 +349,12 @@ export const useAppStore = create<AppState>((set) => ({
       else next[key] = tags;
       return { columnTagOverrides: next };
     }),
+  playgroundAssetIds: [],
+  addToPlayground: (assetId) =>
+    set((s) => (s.playgroundAssetIds.includes(assetId) ? s : { playgroundAssetIds: [...s.playgroundAssetIds, assetId] })),
+  removeFromPlayground: (assetId) =>
+    set((s) => ({ playgroundAssetIds: s.playgroundAssetIds.filter((id) => id !== assetId) })),
+  clearPlayground: () => set({ playgroundAssetIds: [] }),
   runtimeDqRules: [],
   addDqRule: (r) => set((s) => ({ runtimeDqRules: [...s.runtimeDqRules, r] })),
   removeDqRule: (id) => set((s) => ({ runtimeDqRules: s.runtimeDqRules.filter((r) => r.id !== id) })),

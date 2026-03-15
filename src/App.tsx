@@ -26,6 +26,7 @@ import { DataQualityPage } from './pages/DataQualityPage';
 import { WorkflowsPage } from './pages/WorkflowsPage';
 import { WorkflowTaskPage } from './pages/WorkflowTaskPage';
 import { LineagePage } from './pages/LineagePage';
+import { PlaygroundPage } from './pages/PlaygroundPage';
 import { InsightsPage } from './pages/InsightsPage';
 import { CompliancePage } from './pages/CompliancePage';
 import { ConnectorsPage } from './pages/ConnectorsPage';
@@ -65,6 +66,7 @@ function App() {
         <Route path="/workflows" element={<WorkflowsPage />} />
         <Route path="/workflows/task/:taskId" element={<WorkflowTaskPage />} />
         <Route path="/lineage" element={<LineagePage />} />
+        <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/compliance" element={<CompliancePage />} />
         <Route path="/settings" element={<SettingsPage />} />

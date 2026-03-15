@@ -141,4 +141,85 @@ export const domains: Domain[] = [
       },
     ],
   },
+  {
+    id: 'dom-instrument',
+    name: 'Instrument',
+    description: 'Instrument and security reference data',
+    subdomains: [
+      {
+        id: 'sub-instrument-ref',
+        name: 'Instrument Reference',
+        domainId: 'dom-instrument',
+        dataProducts: [
+          {
+            id: 'dp-instrument-master',
+            name: 'Instrument Master Data Product',
+            description: 'Master data for securities and instruments with standard identifiers and currency.',
+            subdomainId: 'sub-instrument-ref',
+            domainId: 'dom-instrument',
+            owner: 'Reference Data Team',
+            ownerEmail: 'ref.data@company.com',
+            sla: 'Daily 04:00 UTC',
+            outputPortAssetIds: ['asset-instrument-master'],
+            tags: ['instrument', 'reference', 'securities'],
+            certified: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'dom-party-account',
+    name: 'Party and Account',
+    description: 'Party, client, and account data',
+    subdomains: [
+      {
+        id: 'sub-party-accounts',
+        name: 'Party and Accounts',
+        domainId: 'dom-party-account',
+        dataProducts: [
+          {
+            id: 'dp-party-accounts',
+            name: 'Party and Account Data Product',
+            description: 'Client accounts, balances, and party attributes for reporting.',
+            subdomainId: 'sub-party-accounts',
+            domainId: 'dom-party-account',
+            owner: 'Party Data Team',
+            ownerEmail: 'party.data@company.com',
+            sla: 'Hourly',
+            outputPortAssetIds: ['asset-awm-accounts'],
+            tags: ['party', 'account', 'client'],
+            certified: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'dom-transaction',
+    name: 'Transaction',
+    description: 'Transaction, position, and holding data',
+    subdomains: [
+      {
+        id: 'sub-transaction-portfolio',
+        name: 'Portfolio and Positions',
+        domainId: 'dom-transaction',
+        dataProducts: [
+          {
+            id: 'dp-transaction-holdings',
+            name: 'Transaction and Holdings Data Product',
+            description: 'Portfolio holdings and aggregated positions with client and currency alignment.',
+            subdomainId: 'sub-transaction-portfolio',
+            domainId: 'dom-transaction',
+            owner: 'Transaction Data Team',
+            ownerEmail: 'txn.data@company.com',
+            sla: 'Daily 05:00 UTC',
+            outputPortAssetIds: ['asset-awm-holdings', 'asset-awm-positions'],
+            tags: ['transaction', 'holdings', 'positions'],
+            certified: true,
+          },
+        ],
+      },
+    ],
+  },
 ];

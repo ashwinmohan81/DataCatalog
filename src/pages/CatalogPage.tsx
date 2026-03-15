@@ -67,11 +67,18 @@ export function CatalogPage() {
 
   const selectedDomain = domainId ? domains.find((d) => d.id === domainId) : null;
   const subdomains = selectedDomain ? selectedDomain.subdomains : [];
+  const dataProductsInDomain = useMemo(
+    () => (selectedDomain ? selectedDomain.subdomains.flatMap((s) => s.dataProducts) : []),
+    [selectedDomain]
+  );
   const dataProducts = useMemo(() => {
-    if (!subdomainId) return [];
-    const sub = subdomains.find((s) => s.id === subdomainId);
-    return sub ? sub.dataProducts : [];
-  }, [subdomainId, subdomains]);
+    if (!domainId) return [];
+    if (subdomainId) {
+      const sub = subdomains.find((s) => s.id === subdomainId);
+      return sub ? sub.dataProducts : [];
+    }
+    return dataProductsInDomain;
+  }, [domainId, subdomainId, subdomains, dataProductsInDomain]);
   const ownersList = useMemo(() => Array.from(new Set(assets.map((a) => a.owner))).sort(), []);
 
   let assetList = useMemo(
@@ -157,7 +164,7 @@ export function CatalogPage() {
             onChange={(e) => setDataProductId(e.target.value)}
             className={styles.insightsFilterSelect}
             aria-label="Data product"
-            disabled={!subdomainId}
+            disabled={!domainId}
           >
             <option value="">All products</option>
             {dataProducts.map((dp) => (
@@ -227,6 +234,28 @@ export function CatalogPage() {
           </p>
         )}
       </Card>
+
+      {domain && dataProductsInDomain.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Data products ({dataProductsInDomain.length})</h2>
+          <ul className={styles.resultList}>
+            {dataProductsInDomain.map((dp) => {
+              const sub = subdomains.find((s) => s.dataProducts.some((p) => p.id === dp.id));
+              return (
+                <li key={dp.id}>
+                  <Link to={`/data-product/${dp.id}`} className={styles.resultLink}>
+                    <span className={styles.resultName}>{dp.name}</span>
+                    <span className={styles.resultMeta}>
+                      {sub?.name ?? '—'} · {dp.owner}
+                      {dp.certified && ' · Certified'}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>

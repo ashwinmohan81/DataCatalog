@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { PersonaId, DataContract, DataProduct, Glossary, GlossaryTerm, DQRule, ContractAmendmentRequest, ContractAmendmentProposed, Notification } from '../data/mock/types';
 import { notifications } from '../data/mock/notifications';
+import { initialDataProductVotes, initialDataProductComments } from '../data/mock/dataProductVotingComments';
 
 interface AppState {
   persona: PersonaId;
@@ -360,7 +361,7 @@ export const useAppStore = create<AppState>((set) => ({
   removeDqRule: (id) => set((s) => ({ runtimeDqRules: s.runtimeDqRules.filter((r) => r.id !== id) })),
   currentApplicationId: 'app-bcbs-consumer',
   setCurrentApplicationId: (id) => set({ currentApplicationId: id }),
-  dataProductVotes: {},
+  dataProductVotes: initialDataProductVotes,
   setVote: (dataProductId, applicationId, value) =>
     set((s) => {
       const next = { ...s.dataProductVotes };
@@ -372,7 +373,7 @@ export const useAppStore = create<AppState>((set) => ({
       else next[dataProductId] = inner;
       return { dataProductVotes: next };
     }),
-  dataProductComments: [],
+  dataProductComments: initialDataProductComments,
   addOrUpdateComment: (dataProductId, applicationId, text) =>
     set((s) => {
       const id = `${dataProductId}:${applicationId}`;

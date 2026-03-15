@@ -74,6 +74,9 @@ export const glossaryTerms: GlossaryTerm[] = [
     linkedColumnIds: [
       { assetId: 'asset-customer-attr', columnId: 'col-c1' },
       { assetId: 'asset-transactions', columnId: 'col-t2' },
+      { assetId: 'asset-awm-holdings', columnId: 'col-awm-h2' },
+      { assetId: 'asset-awm-positions', columnId: 'col-awm-p2' },
+      { assetId: 'asset-awm-accounts', columnId: 'col-awm-a2' },
     ],
   },
   {
@@ -124,12 +127,16 @@ export const glossaryTerms: GlossaryTerm[] = [
     id: 'term-transaction-amount',
     glossaryId: 'glossary-enterprise',
     name: 'Transaction Amount',
-    definition: 'Monetary value of a single transaction.',
-    synonyms: ['Amount', 'Value', 'Sum'],
+    definition: 'Monetary value of a single transaction or balance.',
+    synonyms: ['Amount', 'Value', 'Sum', 'Balance', 'Market Value'],
     owner: 'Alice Data',
     steward: 'Alice Data',
     tags: ['finance', 'Internal'],
-    linkedColumnIds: [],
+    linkedColumnIds: [
+      { assetId: 'asset-awm-holdings', columnId: 'col-awm-h4' },
+      { assetId: 'asset-awm-positions', columnId: 'col-awm-p3' },
+      { assetId: 'asset-awm-accounts', columnId: 'col-awm-a3' },
+    ],
   },
   {
     id: 'term-currency-code',
@@ -140,6 +147,11 @@ export const glossaryTerms: GlossaryTerm[] = [
     owner: 'Alice Data',
     steward: 'Alice Data',
     tags: ['reference', 'Public'],
-    linkedColumnIds: [],
+    linkedColumnIds: [
+      { assetId: 'asset-instrument-master', columnId: 'col-inst-3' },
+      { assetId: 'asset-awm-holdings', columnId: 'col-awm-h5' },
+      { assetId: 'asset-awm-positions', columnId: 'col-awm-p4' },
+      { assetId: 'asset-awm-accounts', columnId: 'col-awm-a4' },
+    ],
   },
 ];
